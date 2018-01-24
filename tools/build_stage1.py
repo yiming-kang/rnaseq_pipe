@@ -6,10 +6,14 @@ import pandas as pd
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-s', '--samples')
-	parser.add_argument('-i', '--genome_index')
-	parser.add_argument('-r', '--reference_gtf')
-	parser.add_argument('-g', '--gene_list')
+	parser.add_argument('-s', '--samples', 
+						help='Sample summary metadata file.')
+	parser.add_argument('-i', '--genome_index', 
+						help='Genome index file built for the aligner, e.g. *.nix for novoalign.')
+	parser.add_argument('-r', '--reference_gtf', 
+						help='Annotation reference file in GTF/GFF3 format.')
+	parser.add_argument('-g', '--gene_list',
+						help='Gene list.')
 	return parser.parse_args(argv[1:])
 
 
@@ -36,7 +40,7 @@ def build_expression_quantification(samples, reference_gtf, gene_list):
 		target_dir = 'expression/stringtie/'+ sample_id
 		target_file = 'expression/stringtie_fpkm/'+ sample_id +'.expr'
 		recipe = 'rm -rf '+ target_dir +'; mkdir '+ target_dir +'; '
-		recipe += 'stringtie '+ prereq +' -G '+ reference_gtf +' -e -o '+ target_dir +'stringtie_out.gtf -A '+ target_dir +'/gene_abundances.tab; '
+		recipe += 'stringtie '+ prereq +' -G '+ reference_gtf +' -e -o '+ target_dir +'/stringtie_out.gtf -A '+ target_dir +'/gene_abundances.tab; '
 		recipe += 'python tools/stringtie2fpkm.py '+ target_dir +'/gene_abundances.tab '+ gene_list +' > '+ target_file
 		expr_dict[target_file] = {'prereq': prereq, 'recipe': recipe}
 	return expr_dict
