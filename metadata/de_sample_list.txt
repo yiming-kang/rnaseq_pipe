@@ -1,0 +1,8 @@
+CNAG_00000-904	expression/stringtie/CNAG_00000-904/out.gtf
+CNAG_00000-927	expression/stringtie/CNAG_00000-927/out.gtf
+CNAG_00000-950	expression/stringtie/CNAG_00000-950/out.gtf
+CNAG_00000-973	expression/stringtie/CNAG_00000-973/out.gtf
+CNAG_04184-905	expression/stringtie/CNAG_04184-905/out.gtf
+CNAG_04184-928	expression/stringtie/CNAG_04184-928/out.gtf
+CNAG_04184-951	expression/stringtie/CNAG_04184-951/out.gtf
+CNAG_04184-974	expression/stringtie/CNAG_04184-974/out.gtf
