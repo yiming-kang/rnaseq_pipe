@@ -1,24 +1,20 @@
 # crypto_pipe.dev
 
 ### Usage
-1. Stage 1: reads alignment, gene expression quantification
+1. Stage 1: Align reads to reference genome and quantify gene expression levels.
 
-	1. Configure job script 
-	```
-	python tools/build_stage1.py -s metadata/sample_summary.txt \
-	-i H99/crNeo99.nix -r H99/crNeo99.gtf -g H99/gids \
-	> job_scripts/stage_1.makefile 
-	```
+This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). 
 
-	2. Submit SLURM job
 	```
-	sbatch job_scripts/run_stage_1.sbatch
+	python tools/build_stage1.py -s metadata/sample_summary.txt -i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 > job_scripts/stage1.sbatch
+	sbatch job_scripts/stage.sbatch
 	```
 
 2. Quality assessment
 
 	```
-	python tools/assess_quality.py -s metadata/sample_summary.txt -e 10 -g H99/gids -w CNAG_00000
+    ml pandas/0.20.3
+	python tools/assess_quality.py -s metadata/sample_summary.txt -e 10 -l H99/gids -w CNAG_00000
 	```
 
 3. Stage 2: differential expression analysis 
