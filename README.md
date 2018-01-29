@@ -1,7 +1,7 @@
 # crypto_pipe.dev
 
 ### Usage
-1. Stage 1: Align reads to reference genome and quantify gene expression levels.
+1. Align reads to reference genome and quantify gene expression levels.
 
 This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). 
 
@@ -13,9 +13,9 @@ This builds the SLURM job script from sample metadata. Each job requires 8 CPUs 
 2. Quality assessment
 
 	```
-    ml pandas/0.20.3
+	ml pandas/0.20.3
 	python tools/assess_quality.py -s metadata/sample_summary.txt -e 10 -l H99/gids -w CNAG_00000
 	```
 
-3. Stage 2: differential expression analysis 
+3. Analyze differential expression  
 
