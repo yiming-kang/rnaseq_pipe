@@ -8,23 +8,29 @@ from itertools import combinations
 
 
 global QC_dict
-QC_dict = {'total_reads': {'threshold': 5*(10**6), 'status': 1},
-			'complexity': {'threshold': .1, 'status': 2},
-			'delfow': {'threshold': .1, 'status': 4},
-			'cov_med': {'threshold': .25, 'status': 8}}
+QC_dict = {
+			'total_reads':	{'threshold': 5*(10**6), 'status': 1},
+			'complexity':	{'threshold': .1, 'status': 2},
+			'del_fow':		{'threshold': .1, 'status': 4},
+			'over_fow':		{'threshold': 1.5, 'status': 4},
+			'cov_med':		{'threshold': .25, 'status': 8},
+			'resi_cass':	{'threshold': .1, 'status': 16}
+			}
 
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-s', '--samples',
+	parser.add_argument('-s', '--samples', required=True,
 						help='Sample summary metadata file.')
-	parser.add_argument('-e', '--experiment_group', type=int,
-						help='Identifier for the experiment group.')
-	parser.add_argument('-w', '--wildtype',
+	parser.add_argument('-g', '--group_num', required=True, type=int, 
+						help='Experiment group number.')
+	parser.add_argument('-w', '--wildtype', required=True,
 						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
-	parser.add_argument('-g', '--gene_list',
+	parser.add_argument('-l', '--gene_list', required=True,
 						help='Gene list.')
-	parser.add_argument('-o', '--output_filepath',
+	parser.add_argument('-c', '--resistance_cassettes', required=True,
+						help='Resistance cassettes used for detecting wildtype and mutant sample outlier. Use "," as delimiter if multiple cassettes exist.')
+	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sample quality summary.')
 	parser.add_argument('-r', '--max_replicates', default=4,
 						help='Maximal number of replicate in experiment design.')
@@ -77,7 +83,7 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 		reader.close()
 		complexity = uniq_mapped_reads/float(total_reads)
 		## set mapping quality
-		row['TOTAL_READS'] = total_reads
+		row['TOTAL'] = total_reads
 		row['COMPLEXITY'] = complexity
 		if total_reads < QC_dict['total_reads']['threshold']:
 			row['STATUS'] += QC_dict['total_reads']['status']
@@ -87,26 +93,31 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 	return df
 
 
-def assess_efficient_perturbation(df, expr, sample_dict, wt):
+def assess_efficient_mutation(df, expr, sample_dict, wt):
 	## calculate mean expression level of each gene
 	wt_expr = pd.Series(pd.DataFrame.mean(expr[sample_dict[wt].values()], 
 					axis=1), name='mean_fpkm')
 	wt_expr = pd.concat([expr, wt_expr], axis=1)
-	## calculate efficiency of marker gene deletion, ignoring overexpression(*_over)
+	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
 	for i,row in df[df['GENOTYPE'] != wt].iterrows():
 		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
-		## check for each marker gene (there could be multiple marker gene perturbation, delimited by '.')
-		delfow_list = []
-		for marker_gene in row['GENOTYPE'].split('.'):
-			if not marker_gene.endswith('_over'):
-				marker_gene_pert = float(expr[expr['gene'] == marker_gene][sample])
-				marker_gene_wt = float(wt_expr[wt_expr['gene'] == marker_gene]['mean_fpkm'])
-				delfow = marker_gene_pert/marker_gene_wt
-				## set inefficient deletion
-				if (delfow > QC_dict['delfow']['threshold']) and (row['STATUS'] < QC_dict['delfow']['status']):
-					row['STATUS'] += QC_dict['delfow']['status']
-				delfow_list.append(str(delfow))
-		row['DELFOW'] = ','.join(delfow_list)
+		## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
+		mut_fow_list = []
+		for mut_gene in row['GENOTYPE'].split('.'):
+			mut_fow = float(expr[expr['gene'] == mut_gene][sample]) / \
+					float(wt_expr[wt_expr['gene'] == mut_gene]['mean_fpkm'])
+			if mut_gene.endswith('_over'):
+				## check overexpression
+				if (mut_fow < QC_dict['over_fow']['threshold']) and \
+					(row['STATUS'] < QC_dict['over_fow']['status']):
+					row['STATUS'] += QC_dict['over_fow']['status']
+			else:
+				## check deletion
+				if (mut_fow > QC_dict['del_fow']['threshold']) and \
+					(row['STATUS'] < QC_dict['del_fow']['status']):
+					row['STATUS'] += QC_dict['del_fow']['status']
+			mut_fow_list.append(str(mut_fow))
+		row['mut_fow'] = ','.join(mut_fow_list)
 		df.iloc[i] = row
 	return df
 
@@ -129,7 +140,7 @@ def assess_replicate_concordance(df, expr, sample_dict):
 				cov_meds_dict[rep_num] = {'rep_combos': [], 'cov_meds': []}
 			cov_meds_dict[rep_num]['rep_combos'].append(rep_combo)
 			cov_meds_dict[rep_num]['cov_meds'].append(cov_median)
-		## assess replicate concordance
+		## find the maximal number of replicates that pass concordance threshold
 		for rep_num in sorted(cov_meds_dict.keys())[::-1]:
 			rep_combo = cov_meds_dict[rep_num]['rep_combos']
 			cov_meds = cov_meds_dict[rep_num]['cov_meds']
@@ -140,6 +151,36 @@ def assess_replicate_concordance(df, expr, sample_dict):
 		outlier_reps = set(max_rep_combo) - set(best_combo)
 		for rep in outlier_reps:
 			df.loc[(df['GENOTYPE'] == genotype) & (df['REPLICATE'] == rep), 'STATUS'] += QC_dict['cov_med']['status']
+	return df
+
+
+def assess_resistance_cassettes(df, expr, resi_cass, wt):
+	## get the median of resistance cassettes
+	rc_med_dict = {}
+	mut_samples = [s for s in expr.columns.values if (not s.startswith(wt)) and (s != 'gene')]
+	for rc in resi_cass:
+		## exclude wildtypes and samples that have other makers expressed 
+		rc0 = [x for x in resi_cass if x != rc]
+		rc0_fpkm = expr.loc[expr['gene'].isin(rc0), mut_samples]
+		rc_fpkm = expr.loc[expr['gene'] == rc, mut_samples]
+		rc_fpkm = rc_fpkm.loc[:, np.sum(rc0_fpkm, axis=0) == 0]
+		rc_med_dict[rc] = rc_fom = np.nan if rc_fpkm.empty else np.median(rc_fpkm)
+	## calcualte FOM (fold change over mutant) of the resistance cassette
+	for i,row in df.iterrows():
+		genotype = row['GENOTYPE']
+		sample = genotype +'-'+ str(row['SAMPLE'])
+		## update FOM
+		for rc in rc_med_dict.keys():
+			row[rc+'_FOM'] = np.nan if np.isnan(rc_med_dict[rc]) else float(expr.loc[expr['gene'] == rc, sample])/rc_med_dict[rc]
+		## flag those two problems: 
+		## 1. the resistance cassette is exprssed in WT
+		## 2. more than one resistance cassette is expressed in single mutant
+		## TODO: add criteria for multi-mutants 
+		fom_check = [row[rc+'_FOM'] > QC_dict['resi_cass']['threshold']*rc_med_dict[rc] for rc in rc_med_dict.keys()]
+		if genotype == wt and sum(fom_check) > 0:
+			row['STATUS'] += QC_dict['resi_cass']['status']
+		if genotype != wt and len(genotype.split('.')) > 1 and sum(fom_check) > 1:
+			row['STATUS'] += QC_dict['resi_cass']['status']
 	return df
 
 
@@ -155,7 +196,7 @@ def make_combinations(lst):
 
 
 def calculate_cov_median(x):
-	## 
+	## calculate the median of COVs (coefficient of variation)
 	covs = np.std(x, axis=1) / np.mean(x, axis=1)
 	return np.nanmedian(covs)
 
@@ -167,17 +208,17 @@ def save_dataframe(filepath, df, df_cols):
 
 def main(argv):
 	parsed = parse_args(argv)
-
-	df_columns = ['GENOTYPE','REPLICATE','SAMPLE',
-				'TOTAL_READS','COMPLEXITY','DELFOW'] + \
-				['COV_MED_REP'+''.join(np.array(combo, dtype=str)) \
-				for combo in make_combinations(range(1,parsed.max_replicates+1))] + \
-				['STATUS']
-	df = initialize_dataframe(parsed.samples, df_columns, parsed.experiment_group)
+	resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
+	df_columns = ['GENOTYPE','REPLICATE','SAMPLE','TOTAL','COMPLEXITY','MUT_FOW'] \
+				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) \
+				for combo in make_combinations(range(1,parsed.max_replicates+1))] \
+				+ [rc+'_FOM' for rc in resistance_cassettes] + ['STATUS']
+	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num)
 	expr, sample_dict = combined_expression_data(df, parsed.gene_list)
 	df = assess_mapping_quality(df)
-	df = assess_efficient_perturbation(df, expr, sample_dict, parsed.wildtype)
+	df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
 	df = assess_replicate_concordance(df, expr, sample_dict)
+	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
 	save_dataframe(parsed.output_filepath, df, df_columns)
 
 if __name__ == '__main__':

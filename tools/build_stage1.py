@@ -62,8 +62,8 @@ def build_expression_quantification(reference_gtf, gene_list):
 		+ '\tmkdir -p expression/stringtie/${sample_id}\n' \
 		+ '\trm -rf expression/stringtie_fpkm/${sample_id} || :\n' \
 		+ '\tmkdir -p expression/stringtie_fpkm/${sample_id}\n' 
-	job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie_fpkm/${sample_id}/stringtie_out.gtf -A expression/stringtie_fpkm/${sample_id}/gene_abundances.tab\n' % reference_gtf
-	job += '\tpython tools/stringtie2fpkm.py expression/stringtie_fpkm/${sample_id}/gene_abundances.tab %s > expression/stringtie_fpkm/${sample_id}.expr\n' % gene_list
+	job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${sample_id}/stringtie_out.gtf -A expression/stringtie/${sample_id}/gene_abundances.tab\n' % reference_gtf
+	job += '\tpython tools/stringtie2fpkm.py expression/stringtie/${sample_id}/gene_abundances.tab %s > expression/stringtie_fpkm/${sample_id}.expr\n' % gene_list
 	job += 'fi\n'
 	sys.stdout.write('%s' % job)
 

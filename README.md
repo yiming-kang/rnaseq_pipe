@@ -22,7 +22,7 @@
 
 2. Align reads to reference genome and quantify gene expression levels.
 	
-	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). 
+	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
 	
 	```
 	python tools/build_stage1.py -s metadata/sample_summary.txt \
