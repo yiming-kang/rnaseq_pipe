@@ -28,14 +28,14 @@
 	python tools/build_stage1.py -s metadata/sample_summary.txt \
 		-i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 \
 		> job_scripts/stage1.sbatch
-	sbatch job_scripts/stage.sbatch
+	sbatch job_scripts/stage1.sbatch
 	```
 
 3. Quality assessment
 	
 	```
 	ml pandas/0.20.3
-	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000
+	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 
 4. Analyze differential expression  

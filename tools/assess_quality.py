@@ -8,13 +8,14 @@ from itertools import combinations
 
 
 global QC_dict
+## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.su    m$COMPLEXITY[indx]);
 QC_dict = {
 			'total_reads':	{'threshold': 5*(10**6), 'status': 1},
-			'complexity':	{'threshold': .1, 'status': 2},
+			'complexity':	{'threshold': .8, 'status': 2},
 			'del_fow':		{'threshold': .1, 'status': 4},
 			'over_fow':		{'threshold': 1.5, 'status': 4},
 			'cov_med':		{'threshold': .25, 'status': 8},
-			'resi_cass':	{'threshold': .1, 'status': 16}
+			'resi_cass':	{'threshold': .5, 'status': 16}
 			}
 
 
@@ -117,7 +118,7 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 					(row['STATUS'] < QC_dict['del_fow']['status']):
 					row['STATUS'] += QC_dict['del_fow']['status']
 			mut_fow_list.append(str(mut_fow))
-		row['mut_fow'] = ','.join(mut_fow_list)
+		row['MUT_FOW'] = ','.join(mut_fow_list)
 		df.iloc[i] = row
 	return df
 
