@@ -1,5 +1,17 @@
 # crypto_pipe.dev
 
+### Requirement
+1. This pipeline uses SLURM workload manager to streamline the RNAseq analysis. Tested on SLURM v17.02.6.
+
+2. The following tools/modules are required. Tested on the respective versions. Install if running on other clusters. 
+
+	```
+	module load novoalign/3.07.00
+	module load stringtie/1.3.3b  
+	module load samtools/1.6
+	module load pandas/0.20.3
+	```
+
 ### Usage
 1. Preperation.
 	
@@ -25,16 +37,13 @@
 	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
 	
 	```
-	python tools/build_stage1.py -s metadata/sample_summary.txt \
-		-i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 \
-		> job_scripts/stage1.sbatch
+	python tools/build_stage1.py -s metadata/sample_summary.txt -i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 > job_scripts/stage1.sbatch
 	sbatch job_scripts/stage1.sbatch
 	```
 
 3. Quality assessment
 	
 	```
-	ml pandas/0.20.3
 	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 

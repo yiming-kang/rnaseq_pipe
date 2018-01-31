@@ -1,0 +1,18 @@
+total_reads:
+  threshold: 5000000
+  status: 1
+complexity:
+  threshold: 0.8
+  status": 2
+del_fow:
+  threshold: 0.1
+  status: 4
+over_fow:
+  threshold: 1.5
+  status: 4
+cov_med:
+  threshold: 0.25
+  status: 8
+resi_cass:
+  threshold: 0.5
+  status: 16
