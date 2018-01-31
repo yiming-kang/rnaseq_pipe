@@ -10,29 +10,45 @@
 	module load stringtie/1.3.3b  
 	module load samtools/1.6
 	module load pandas/0.20.3
+	module load igv/2.3.60
+	module load java
 	```
 
 ### Usage
-1. Preperation.
+1. Setup [One time only]
 	
-	1. [One time only] Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
+	1. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
 	
 	```
 	ml novoalign/3.07.00
 	novoindex H99/crNeoH99.nix H99/crNeoH99.fasta 
 	```
 
-	2. [One time only] Make direcotries. 
+	2. Make direcotries. 
 
 	```
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_fpkm},job_scripts,log,reports,sequence}
 	```
 
-	3. Soft link or copy fastq files to sequence.
+	3. [Optional] IGV-snapshot-automator needs to be installed to make IGV batch file for automated snapshot. And run the testing demo to make sure the batch file (.bat) and .png images can be generated.
 
-	4. Update sample summary metadata file.
+	```
+	cd tools/
+	git clone https://github.com/stevekm/IGV-snapshot-automator.git
+	cd IGV-snapshot-automator/
+	bash ../interactive.sh
+	module load java
+	python make_IGV_snapshots.py test_data/test_alignments.bam test_data/test_alignments2.bam -bin /opt/apps/igv/2.3.60/igv.jar
+	```
 
-2. Align reads to reference genome and quantify gene expression levels.
+
+2. Preparation of sequence files and metadata file 
+	
+	1. Soft link or copy fastq files to sequence.
+
+	2. Update sample summary metadata file.
+
+3. Reads alignment and expression quantification
 	
 	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
 	
@@ -41,11 +57,13 @@
 	sbatch job_scripts/stage1.sbatch
 	```
 
-3. Quality assessment
+4. Quality assessment
+
+	1. Assesses the total read count, percentage of uniquely aligned reads, efficiency of gene perturbation, replicate concordance, and efficiency of the replacement of drug-marker gene for each sample. The status is in bit form (encoding of the corresponding flags is stored in qc_config.yaml).
 	
 	```
 	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 
-4. Analyze differential expression  
+5. Differential expression  
 

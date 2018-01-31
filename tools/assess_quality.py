@@ -36,6 +36,7 @@ def initialize_dataframe(samples, df_cols, group):
 	df = pd.DataFrame(columns=df_cols)
 	df2 = pd.read_csv(samples, delimiter='\t')
 	df2 = df2[df2['GROUP'] == group][['GENOTYPE','REPLICATE','SAMPLE']]
+	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	return df.append(df2)
 
@@ -241,10 +242,11 @@ def main(argv):
 	global QC_dict
 	QC_dict = load_config(parsed.qc_configure)
 	resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
-	df_columns = ['GENOTYPE','REPLICATE','SAMPLE','TOTAL','COMPLEXITY','MUT_FOW'] \
+	df_columns = ['GENOTYPE','REPLICATE','SAMPLE','STATUS', \
+					'TOTAL','COMPLEXITY','MUT_FOW'] \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) \
 				for combo in make_combinations(range(1,parsed.max_replicates+1))] \
-				+ [rc+'_FOM' for rc in resistance_cassettes] + ['STATUS']
+				+ [rc+'_FOM' for rc in resistance_cassettes]
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num)
 	expr, sample_dict = combined_expression_data(df, parsed.gene_list)
 	

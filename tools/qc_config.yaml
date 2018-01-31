@@ -3,7 +3,7 @@ total_reads:
   status: 1
 complexity:
   threshold: 0.8
-  status": 2
+  status: 2
 del_fow:
   threshold: 0.1
   status: 4
