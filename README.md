@@ -1,6 +1,6 @@
 # crypto_pipe.dev
 
-### Requirement
+### REQUIREMENT
 1. This pipeline uses SLURM workload manager to streamline the RNAseq analysis. Tested on SLURM v17.02.6.
 
 2. The following tools/modules are required. Tested on the respective versions. Install if running on other clusters. 
@@ -14,8 +14,7 @@
 	module load java
 	```
 
-### Usage
-1. Setup [One time only]
+### SETUP
 	
 	1. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
 	
@@ -41,14 +40,15 @@
 	python make_IGV_snapshots.py test_data/test_alignments.bam test_data/test_alignments2.bam -bin /opt/apps/igv/2.3.60/igv.jar
 	```
 
+### USAGE
 
-2. Preparation of sequence files and metadata file 
+1. Preparation of sequence files and metadata file 
 	
-	1. Soft link or copy fastq files to sequence.
+	1. Make soft link or copy fastq files to sequence.
 
 	2. Update sample summary metadata file.
 
-3. Reads alignment and expression quantification
+2. Reads alignment and expression quantification
 	
 	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
 	
@@ -57,13 +57,19 @@
 	sbatch job_scripts/stage1.sbatch
 	```
 
-4. Quality assessment
+3. Quality assessment
 
-	1. Assesses the total read count, percentage of uniquely aligned reads, efficiency of gene perturbation, replicate concordance, and efficiency of the replacement of drug-marker gene for each sample. The status is in bit form (encoding of the corresponding flags is stored in qc_config.yaml).
+	1. Assess the total read count, percentage of uniquely aligned reads, efficiency of gene perturbation, replicate concordance, and efficiency of the replacement of drug-marker gene for each sample. The status is in bit form (encoding of the corresponding flags is stored in qc_config.yaml).
 	
 	```
 	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 
-5. Differential expression  
+	2. Make automated IGV snapshot of the problematic mutant and marker genes.
+
+	```
+	sbatch job_scripts/igv_snapshot.sbatch
+	```
+
+4. Differential expression  
 
