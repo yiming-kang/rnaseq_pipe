@@ -16,20 +16,22 @@
 
 ### SETUP
 	
-	1. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
+1. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
 	
 	```
 	ml novoalign/3.07.00
 	novoindex H99/crNeoH99.nix H99/crNeoH99.fasta 
 	```
 
-	2. Make direcotries. 
+2. Make direcotries. 
 
 	```
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_fpkm},job_scripts,log,reports,sequence}
 	```
 
-	3. [Optional] IGV-snapshot-automator needs to be installed to make IGV batch file for automated snapshot. And run the testing demo to make sure the batch file (.bat) and .png images can be generated.
+3. [Optional] IGV-snapshot-automator needs to be installed to make IGV batch file for automated snapshot. 
+
+	1. Clone the following repo and run the testing demo to make sure the batch file (.bat) and .png images can be generated.
 
 	```
 	cd tools/
@@ -39,6 +41,10 @@
 	module load java
 	python make_IGV_snapshots.py test_data/test_alignments.bam test_data/test_alignments2.bam -bin /opt/apps/igv/2.3.60/igv.jar
 	```
+
+	2. Generate the .genome file of the species of interest in IGV. Copy the custom genome file to igv default genome directory on the server `$HOME/igv/genomes/`. 
+
+	3. Add your genome filename without .genome suffix to the variable `GENOME_LIST` in IGV preference file `$HOME/igv/prefs.properties` so that IGV loads your custom genome properly.
 
 ### USAGE
 
@@ -65,7 +71,7 @@
 	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 
-	2. Make automated IGV snapshot of the problematic mutant and marker genes.
+	2. [Optional] Make automated IGV snapshot of the problematic mutant and marker genes.
 
 	```
 	sbatch job_scripts/igv_snapshot.sbatch
