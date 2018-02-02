@@ -42,9 +42,19 @@
 	python make_IGV_snapshots.py test_data/test_alignments.bam test_data/test_alignments2.bam -bin /opt/apps/igv/2.3.60/igv.jar
 	```
 
-	2. Generate the .genome file of the species of interest in IGV. Copy the custom genome file to igv default genome directory on the server `$HOME/igv/genomes/`. 
+	2. Generate and configure the IGV genome file of the species of interest. 
 
-	3. Add your genome filename without .genome suffix to the variable `GENOME_LIST` in IGV preference file `$HOME/igv/prefs.properties` so that IGV loads your custom genome properly.
+		1. On your local computer, make a directory `$HOME/igv/<strain>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
+		2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
+		3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
+		4. Copy your local directory `$HOME/igv/<strain>` to the cluster directory `$HOME/igv/<strain>`.
+		5. Go to the cluster IGV directory. Edit the lines in file `$HOME/igv/prefs.properties`:
+
+		```
+		DEFINE_GENOME_INPUT_DIRECTORY_KEY=<your_home_dir_on_cluster>/igv/<strain>
+		DEFAULT_GENOME_KEY=<strain>
+		```
+
 
 ### USAGE
 
