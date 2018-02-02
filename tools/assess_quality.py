@@ -4,8 +4,7 @@ import argparse
 import re
 import pandas as pd
 import numpy as np
-from itertools import combinations
-import yaml
+from utils import *
 
 
 def parse_args(argv):
@@ -101,7 +100,7 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 	"""
 	## calculate mean expression level of each gene
 	wt_expr = pd.Series(pd.DataFrame.mean(expr[sample_dict[wt].values()], 
-					axis=1), name='mean_fpkm')
+						axis=1), name='mean_fpkm')
 	wt_expr = pd.concat([expr, wt_expr], axis=1)
 	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
 	for i,row in df[df['GENOTYPE'] != wt].iterrows():
@@ -198,34 +197,12 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 	return df
 
 
-def make_combinations(lst):
-	"""
-	Make all possible replicate combinations
-	"""
-	if len(lst) < 2:
-		return [lst]
-	combo = []
-	for i in range(len(lst), 1, -1):
-		for s in combinations(lst, i):
-			combo.append(s)
-	return combo
-
-
 def calculate_cov_median(x):
 	"""
 	Calculate the median of COVs (coefficient of variation) among replicates
 	"""
 	covs = np.std(x, axis=1) / np.mean(x, axis=1)
 	return np.nanmedian(covs)
-
-
-def load_config(json_file):
-	"""
-	Load configuration file (JSON) for QC thresholding and scoring
-	"""
-	with open(json_file) as json_data:
-		d = yaml.safe_load(json_data)
-	return d
 
 
 def save_dataframe(filepath, df, df_cols):
@@ -255,7 +232,7 @@ def main(argv):
 	df = assess_replicate_concordance(df, expr, sample_dict)
 	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
 	save_dataframe(parsed.output_filepath, df, df_columns)
-
+	
 
 if __name__ == '__main__':
 	main(sys.argv)
