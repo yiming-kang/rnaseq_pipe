@@ -73,7 +73,23 @@ def parse_gtf(filename):
 
 
 def parse_gff3():
-	pass
+	"""
+	Convert gff3 into dictionary for filling bed fields
+	"""
+	bed_dict = {}
+	reader = open(filename, 'r')
+	for line in reader.readlines():
+		if not line.startswith('#'):
+			## get info from each line
+			line_split = line.split("\t")
+			chrm, ltype, strand, annot = line_split[0], line_split[2], line_split[6], line_split[8]
+			coords = [int(x) for x in line_split[3:5]]
+			if ltype in 'gene':
+				gene_id = re.search(r'ID=(.*);Name=(.*)', annot).group(1)
+				## fill dictionary
+				bed_dict[gene_id] = {'chrm': chrm, 'strand': strand, 'coords':[min(coords), max(coords)]}
+	reader.close()
+	return bed_dict
 
 
 def mkdir_p(d):

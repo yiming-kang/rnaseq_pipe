@@ -75,7 +75,14 @@
 
 3. Quality assessment
 
-	1. Assess the total read count, percentage of uniquely aligned reads, efficiency of gene perturbation, replicate concordance, and efficiency of the replacement of drug-marker gene for each sample. The status is in bit form (encoding of the corresponding flags is stored in qc_config.yaml).
+	1. Assess the quality of each sample. The metrics used in this assessment are:
+		* Total read count
+		* Percentage of uniquely aligned reads
+		* Efficiency of gene perturbation
+		* Replicate concordance
+		* Efficiency of the replaced drug-marker gene. 
+
+		The status is in bit form (encoding of the corresponding flags is stored in qc_config.yaml).
 	
 	```
 	ml pandas/0.20.3
@@ -83,7 +90,7 @@
 	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 
-	2. [Optional] Make automated IGV snapshot of the problematic mutant and marker genes.
+	2. [Optional] Assess the efficiency of gene perturbation. Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled as `[sample]gene_mutant.png`.
 
 	```
 	python tools/build_igv_snapshot.py -q reports/sample_quality.group_10.txt -g H99/crNeoH99.gtf -gm H99 -o reports/inefficient_mutation.group_10/
