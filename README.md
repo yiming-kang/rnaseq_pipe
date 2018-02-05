@@ -86,6 +86,7 @@
 	2. [Optional] Make automated IGV snapshot of the problematic mutant and marker genes.
 
 	```
+	python tools/build_igv_snapshot.py -q reports/sample_quality.group_10.txt -g H99/crNeoH99.gtf -gm H99 -o reports/inefficient_mutation.group_10/
 	sbatch job_scripts/igv_snapshot.sbatch
 	```
 

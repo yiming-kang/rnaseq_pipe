@@ -16,7 +16,7 @@ def parse_args(argv):
 						help='Gene list.')
 	parser.add_argument('-g', '--group_num', required=True,
 						help='Experiment group number.')
-	parser.add_argument('-m', '--mail_user',
+	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
 
