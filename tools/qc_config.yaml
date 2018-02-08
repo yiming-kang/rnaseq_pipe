@@ -1,18 +1,19 @@
-total_reads:
+TOTAL_READS:
   threshold: 5000000
   status: 1
-complexity:
+COMPLEXITY:
   threshold: 0.8
   status: 2
-del_fow:
-  threshold: 0.1
-  status: 4
-over_fow:
-  threshold: 1.5
-  status: 4
-cov_med:
-  threshold: 0.25
-  status: 8
-resi_cass:
+MUT_FOW:
+  DELETION:
+    threshold: 0.1
+    status: 4
+  OVEREXPRESSION:
+    threshold: 1.5
+    status: 4
+MARKER_FOM:
   threshold: 0.5
+  status: 8
+COV_MED:
+  threshold: 0.25
   status: 16
