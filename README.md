@@ -30,31 +30,18 @@
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_fpkm},job_scripts,log,reports,sequence}
 	```
 
-3. [Optional] IGV-snapshot-automator needs to be installed to make IGV batch file for automated snapshot. 
+3. [Optional] IGV-snapshot-automator is included in `tools` to make IGV batch file for automated snapshot. Next up, generate and configure the IGV genome file of the species of interest. 
 
-	1. Clone the following repo and run the testing demo to make sure the batch file (.bat) and .png images can be generated.
+	1. On your local computer, make a directory `$HOME/igv/<strain>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
+	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
+	3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
+	4. Copy your local directory `$HOME/igv/<strain>` (including an indexing file `.fasta.fai` built by IGV) to the cluster directory `$HOME/igv/<strain>`.
+	5. Go to the cluster IGV directory. Edit the following lines in file `$HOME/igv/prefs.properties`:
 
 	```
-	cd tools/
-	git clone https://github.com/stevekm/IGV-snapshot-automator.git
-	cd IGV-snapshot-automator/
-	bash ../interactive.sh
-	module load java
-	python make_IGV_snapshots.py test_data/test_alignments.bam test_data/test_alignments2.bam -bin /opt/apps/igv/2.3.60/igv.jar
+	DEFINE_GENOME_INPUT_DIRECTORY_KEY=<your_cluster_home_dir>/igv/<strain>
+	DEFAULT_GENOME_KEY=<strain>
 	```
-
-	2. Generate and configure the IGV genome file of the species of interest. 
-
-		1. On your local computer, make a directory `$HOME/igv/<strain>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
-		2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
-		3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
-		4. Copy your local directory `$HOME/igv/<strain>` (including an indexing file `.fasta.fai` built by IGV) to the cluster directory `$HOME/igv/<strain>`.
-		5. Go to the cluster IGV directory. Edit the following lines in file `$HOME/igv/prefs.properties`:
-
-		```
-		DEFINE_GENOME_INPUT_DIRECTORY_KEY=<your_cluster_home_dir>/igv/<strain>
-		DEFAULT_GENOME_KEY=<strain>
-		```
 
 
 ### USAGE
@@ -86,13 +73,13 @@
 	
 	```
 	ml pandas/0.20.3
-	ml pysam/0.11.0
 	python tools/assess_quality.py -s metadata/sample_summary.txt -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.txt
 	```
 
 	2. [Optional] Assess the efficiency of gene perturbation. Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled as `[sample]gene_mutant.png`.
 
 	```
+	ml pysam/0.11.0
 	python tools/build_igv_snapshot.py -q reports/sample_quality.group_10.txt -g H99/crNeoH99.gtf -gm H99 -o reports/inefficient_mutation.group_10/
 	sbatch job_scripts/igv_snapshot.sbatch
 	```
