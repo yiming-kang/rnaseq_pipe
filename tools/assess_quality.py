@@ -226,13 +226,14 @@ def save_dataframe(filepath, df, df_cols):
 
 def main(argv):
 	parsed = parse_args(argv)
-
 	if os.path.exists(parsed.output_filepath):
 		sys.exit('WARNING: %s already exists, rename the file to proceed.' % parsed.output_filepath)
 
 	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
 	global QC_dict
 	QC_dict = load_config(parsed.qc_configure)
+
+	print '... Preparing QA dataframe'
 	resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
 	df_columns = ['GENOTYPE','REPLICATE','SAMPLE', \
 					'TOTAL','COMPLEXITY','MUT_FOW'] \
@@ -241,12 +242,15 @@ def main(argv):
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num)
 	expr, sample_dict = combined_expression_data(df, parsed.gene_list)
-	
+	print '... Assessing reads mapping'
 	df = assess_mapping_quality(df)
+	print '... Assessing efficiency of gene mutation'
 	df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
+	print '... Assessing insertion of resistance cassette'
 	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
+	print '... Assessing concordance among replicates'
 	df = assess_replicate_concordance(df, expr, sample_dict)
-	df = update_auto_audit(df)
+	df = update_auto_audit(df, parsed.auto_audit_threshold)
 	save_dataframe(parsed.output_filepath, df, df_columns)
 	
 
