@@ -56,7 +56,7 @@
 	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
 	
 	```
-	python tools/build_stage1.py -s metadata/sample_summary.xlsx -i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 > job_scripts/stage1.sbatch
+	python tools/build_stage1.py -i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 -o job_scripts/stage1.sbatch
 	sbatch job_scripts/stage1.sbatch
 	```
 
@@ -73,7 +73,7 @@
 	
 	```
 	ml pandas/0.20.3
-	python tools/assess_quality.py -s metadata/sample_summary.xlsx -l H99/gids -g 10 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.xlsx
+	python tools/assess_quality.py -l H99/gids -g 10 -r 4 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.xlsx
 	```
 
 	2. [Optional] Assess the efficiency of gene perturbation. Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled as `[sample]gene_mutant.png`.
@@ -82,6 +82,13 @@
 	ml pysam/0.11.0
 	python tools/build_igv_snapshot.py -q reports/sample_quality.group_10.xlsx -g H99/crNeoH99.gtf -gm H99 -o reports/inefficient_mutation.group_10/
 	sbatch job_scripts/igv_snapshot.sbatch
+	```
+
+	3. [Optional] Make saturation plots for samples grouped by genotype. The output plot is title as `[genotype].png`
+
+	```
+	ml R/3.2.1
+	Rscript tools/make_saturation_curve.r -i expression/stringtie_gene_count_matrix.csv -o reports/saturation_curves.group_9_10
 	```
 
 4. Differential expression  
