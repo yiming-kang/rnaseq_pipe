@@ -30,7 +30,7 @@
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_fpkm},job_scripts,log,reports,sequence}
 	```
 
-3. [Optional] IGV-snapshot-automator is included in `tools` to make IGV batch file for automated snapshot. Next up, generate and configure the IGV genome file of the species of interest. 
+3. [Optional] Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
 
 	1. On your local computer, make a directory `$HOME/igv/<strain>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
 	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
@@ -43,13 +43,30 @@
 	DEFAULT_GENOME_KEY=<strain>
 	```
 
+4. [Optional] Install NOISeq package from Bioconductor.
+
+	```
+	source("https://bioconductor.org/biocLite.R")
+	biocLite("NOISeq")
+	```
+
 
 ### USAGE
 
 1. Preparation of sequence files and metadata file 
 	
-	1. Make soft link or copy fastq files to sequence.
+	1. Make soft link or copy fastq files to sequence. `*.gz` sequence files are acceptable.
 	2. Update sample summary metadata file.
+
+		Single batch:
+		```
+		python tools/prepare_samples.py -m metadata/EXPERIMENT_9.xlsx
+		```
+
+		Mutliple batches to be analyzed together:
+		```
+		python tools/prepare_samples.py -m metadata/EXPERIMENT_9.xlsx,metadata/EXPERIMENT_10.xlsx,metadata/EXPERIMENT_11.xlsx -g 1
+		```
 
 2. Reads alignment and expression quantification
 	
