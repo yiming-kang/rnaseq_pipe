@@ -20,6 +20,8 @@ def parse_args(argv):
 						help='Filepath of sbatch job script.')
 	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
 						help='Sample summary metadata file.')
+	parser.add_argument('--read_length', default=75, type=int,
+						help='Average read length.')
 	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
@@ -41,8 +43,8 @@ def build_header(samples_filepath, group, email=None):
 	job += '#SBATCH -D ./\n#SBATCH -o log/stage1_%A_%a.out\n#SBATCH -e log/stage1_%A_%a.err\n#SBATCH -J stage1\n'
 	if email is not None:
 		job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % email
-	job += '\nml novoalign/3.07.00\nml samtools/1.6\nml stringtie/1.3.3b\n'
-	job += 'read sample_id seq_file < <( sed -n ${SLURM_ARRAY_TASK_ID}p %s )\nset -e\n\n' % lookup_filepath
+	job += '\nml novoalign/3.07.00\nml samtools/1.6\nml stringtie/1.3.3b\nml R/3.2.1\n'
+	job += 'read data1 data2 < <( sed -n ${SLURM_ARRAY_TASK_ID}p %s )\nset -e\n\n' % lookup_filepath
 	return job
 
 
@@ -50,13 +52,12 @@ def build_alignment(genome_index):
 	"""
 	Build job scripts for aligning reads to ref genome using Novoalign
 	"""
-	job = 'if [ ! -f alignment/novoalign/${sample_id}/aligned_reads_sorted.bam ]\n' \
-		+ 'then\n' \
-		+ '\trm -rf alignment/novoalign/${sample_id} || :\n' \
-		+ '\tmkdir -p alignment/novoalign/${sample_id}\n' 
-	job += '\tnovoalign -c ${SLURM_CPUS_PER_TASK} -o SAM -d %s -f ${seq_file} 2>alignment/novoalign/${sample_id}/novoalign.log | samtools view -bS > alignment/novoalign/${sample_id}/aligned_reads.bam\n' % genome_index
-	job += '\tnovosort --threads ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads.bam >  alignment/novoalign/${sample_id}/aligned_reads_sorted.bam 2> alignment/novoalign/${sample_id}/novosort.log\n' \
-		+ '\trm alignment/novoalign/${sample_id}/aligned_reads.bam\n' \
+	job = 'if [ ! -f alignment/novoalign/${data1}/aligned_reads_sorted.bam ]; then\n' \
+		+ '\trm -rf alignment/novoalign/${data1} || :\n' \
+		+ '\tmkdir -p alignment/novoalign/${data1}\n' 
+	job += '\tnovoalign -c ${SLURM_CPUS_PER_TASK} -o SAM -d %s -f ${data2} 2>alignment/novoalign/${data1}/novoalign.log | samtools view -bS > alignment/novoalign/${data1}/aligned_reads.bam\n' % genome_index
+	job += '\tnovosort --threads ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads.bam >  alignment/novoalign/${data1}/aligned_reads_sorted.bam 2> alignment/novoalign/${data1}/novosort.log\n' \
+		+ '\trm alignment/novoalign/${data1}/aligned_reads.bam\n' \
 		+ 'fi\n\n'
 	return job
 
@@ -65,14 +66,25 @@ def build_expression_quantification(reference_gtf, gene_list):
 	"""
 	Build job scripts for quantifying gene expression levels using StringTie
 	"""
-	job = 'if [ ! -f expression/stringtie_fpkm/${sample_id}.expr ]\n' \
-		+ 'then\n' \
-		+ '\trm -rf expression/stringtie/${sample_id} || :\n' \
-		+ '\tmkdir -p expression/stringtie/${sample_id}\n' \
-		+ '\trm -rf expression/stringtie_fpkm/${sample_id} || :\n' 
-	job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${sample_id}/stringtie_out.gtf -A expression/stringtie/${sample_id}/gene_abundances.tab\n' % reference_gtf
-	job += '\tpython tools/stringtie2fpkm.py expression/stringtie/${sample_id}/gene_abundances.tab %s > expression/stringtie_fpkm/${sample_id}.expr\n' % gene_list
-	job += 'fi\n'
+	job = 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
+		+ '\trm -rf expression/stringtie/${data1} || :\n' \
+		+ '\tmkdir -p expression/stringtie/${data1}\n' 
+	job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${data1}/stringtie_out.gtf -A expression/stringtie/${data1}/gene_abundances.tab\n' % reference_gtf
+	# job += '\tpython tools/stringtie2fpkm.py expression/stringtie/${data1}/gene_abundances.tab %s > expression/stringtie_fpkm/${data1}.expr\n' % gene_list
+	job += 'fi\n\n'
+	return job
+
+
+def build_count_normalization(group, read_length):
+	"""
+	Build job scripts for normalizing count matrix
+	"""
+	lookup_file = 'job_scripts/lookup_files/group_%s.expr.txt' % group
+	job = 'if [ ! -f ${data2} ]; then\n'
+	job += '\twhile true; do\n'
+	job += '\t\tflag=1; while read s f; do if ! [[ -e $f ]]; then flag=0; fi; done < %s\n' % lookup_file
+	job += '\t\tif [[ $flag == 1 ]]; then python tools/prepDE.py -i %s -g ${data1} -l %d; Rscript tools/normalize_counts.r -i ${data1} -o ${data2}; break; fi\n' % (lookup_file, read_length)
+	job += '\t\tsleep 10\n\tdone\nfi\n'
 	return job
 
 
@@ -80,17 +92,22 @@ def prepare_lookup_file(samples, group):
 	"""
 	Prepare lookup file for sbatch runs
 	"""
-	lookup_align, lookup_expr = '', ''
+	## create lookup data for each sample
+	lookup_stage1, lookup_expr = '', ''
 	for i,row in samples.iterrows(): 
 		sample = row['GENOTYPE'] +'-'+ row['SAMPLE']
 		expr_file = 'expression/stringtie/'+ sample +'/stringtie_out.gtf'
-		lookup_align += '%s\t%s\n' % (sample, row['FILE'])
+		lookup_stage1 += '%s\t%s\n' % (sample, row['FILE'])
 		lookup_expr += '%s\t%s\n' % (sample, expr_file)
+	## create laste line 
+	lookup_stage1 += 'expression/stringtie_count_matrix/count_matrix.group_%s.csv\texpression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv\n' % (group, group)
 	## write file
 	lookup_filepath_prefix = 'job_scripts/lookup_files/group_'+ group
-	write_file(lookup_align, lookup_filepath_prefix +'_align')
-	write_file(lookup_expr, lookup_filepath_prefix +'_expr')
-	return lookup_filepath_prefix +'_align'
+	lookup_stage1_filepath = lookup_filepath_prefix +'.stage1.txt'
+	lookup_expr_filepath = lookup_filepath_prefix +'.expr.txt'
+	write_file(lookup_stage1, lookup_stage1_filepath)
+	write_file(lookup_expr, lookup_expr_filepath)
+	return lookup_stage1_filepath
 
 
 def write_file(jobs, filepath):
@@ -121,6 +138,8 @@ def main(argv):
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
 	jobs += build_expression_quantification(parsed.reference_gtf, parsed.gene_list)
+	print '... Building scripts for count normalization'
+	jobs += build_count_normalization(parsed.group_num, parsed.read_length)
 	write_file(jobs, parsed.output_filepath)
 	
 

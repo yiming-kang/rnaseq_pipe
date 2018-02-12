@@ -5,7 +5,7 @@ from optparse import OptionParser
 from operator import itemgetter
 #note that the gtf files in the sample folders have same # of lines, just different order(?)
 
-parser=OptionParser(description='Generates two CSV files containing the count matrices for genes and transcripts, using the coverage values found in the output of `stringtie -e`')
+parser=OptionParser(description='Generates two CSV files containing the count matrices for genes and transcripts (optional), using the coverage values found in the output of `stringtie -e`')
 parser.add_option('-i', '--input', '--in', default='ballgown', help="the parent directory of the sample sub-directories or a textfile listing the paths to GTF files [default: %default]")
 parser.add_option('-g', default='gene_count_matrix.csv', help="where to output the gene count matrix [default: %default")
 parser.add_option('-t', default='transcript_count_matrix.csv', help="where to output the transcript count matrix [default: %default]")
@@ -253,13 +253,13 @@ for q, s in enumerate(samples):
         geneDict[geneIDs[i]].setdefault(s[0],0)
         geneDict[geneIDs[i]][s[0]]+=v[s[0]]
 
-
-with open(opts.t, 'w') as csvfile:
-    my_writer = csv.DictWriter(csvfile, fieldnames = ["transcript_id"] + [x for x,y in samples])
-    my_writer.writerow(dict((fn,fn) for fn in my_writer.fieldnames))
-    for i in t_dict:
-        t_dict[i]["transcript_id"] = i
-        my_writer.writerow(t_dict[i])
+if opts.t != 'transcript_count_matrix.csv':
+    with open(opts.t, 'w') as csvfile:
+        my_writer = csv.DictWriter(csvfile, fieldnames = ["transcript_id"] + [x for x,y in samples])
+        my_writer.writerow(dict((fn,fn) for fn in my_writer.fieldnames))
+        for i in t_dict:
+            t_dict[i]["transcript_id"] = i
+            my_writer.writerow(t_dict[i])
 
 with open(opts.g, 'w') as csvfile:
     my_writer = csv.DictWriter(csvfile, fieldnames = ["gene_id"] + [x for x,y in samples])

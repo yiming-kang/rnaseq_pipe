@@ -15,14 +15,14 @@ def parse_args(argv):
 						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-w', '--wildtype', required=True,
 						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
-	parser.add_argument('-l', '--gene_list', required=True,
-						help='Gene list.')
 	parser.add_argument('-c', '--resistance_cassettes', required=True,
 						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sample quality summary.')
 	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
 						help='Sample summary metadata file.')
+	parser.add_argument('-l', '--gene_list',
+						help='Use a custom gene list other than the list in gene annotation file.')
 	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
@@ -36,7 +36,7 @@ def initialize_dataframe(samples, df_cols, group):
 	"""
 	df = pd.DataFrame(columns=df_cols)
 	df2 = pd.read_excel(samples, dtype=np.str)
-	df2 = df2[df2['GROUP'] == group][['GENOTYPE','REPLICATE','SAMPLE']]
+	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['GENOTYPE','REPLICATE','SAMPLE']]
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
@@ -63,6 +63,33 @@ def combined_expression_data(df, gids, expr_tool='stringtie'):
 			sample_dict[genotype] = {}
 		sample_dict[genotype][row['REPLICATE']] = sample
 	return expr, sample_dict
+
+
+def load_expression_data(df, group, gene_list, expr_tool='stringtie'):
+	"""
+	Load count matrix, and make a sample dictionary.
+	"""
+	gids = pd.read_csv(gene_list)
+	## load count matrix
+	filepath = 'expression/%s_count_matrix/normalized_count_matrix.group_%s.csv' % (expr_tool, group)
+	count = pd.read_csv(filepath)
+	count = count.rename(columns={'Unnamed: 0':'gene'})
+	## find the intersected gene list
+	if gids is not None:
+		if len(np.setdiff1d(gids, count['gene'])) > 0:
+			print 'WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.'
+		gids = np.intersect1d(gids, count['gene'])
+		count = count.loc[count['gene'].isin(gids)]
+	## make sample dict
+	sample_dict = {}
+	for i,row in df.iterrows():
+		genotype = row['GENOTYPE']
+		sample = genotype +'-'+ str(row['SAMPLE'])
+		if sample in count.columns.values:
+			if genotype not in sample_dict.keys():
+				sample_dict[genotype] = {}
+			sample_dict[genotype][row['REPLICATE']] = sample
+	return count, sample_dict
 
 
 def assess_mapping_quality(df, aligner_tool='novoalign'):
@@ -248,7 +275,8 @@ def main(argv):
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num)
-	expr, sample_dict = combined_expression_data(df, parsed.gene_list)
+	# expr, sample_dict = combined_expression_data(df, parsed.gene_list)
+	expr, sample_dict = load_expression_data(df, parsed.group_num, parsed.gene_list)
 	print '... Assessing reads mapping'
 	df = assess_mapping_quality(df)
 	print '... Assessing efficiency of gene mutation'
