@@ -6,14 +6,14 @@
 
 This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules are required. Tested on the respective versions. 
 	
-	* SLURM v17.02.6
-	* novoalign v3.07.00
-	* stringtie v1.3.3b  
-	* samtools v1.6
-	* pandas v0.20.3
-	* pysam v0.11.0
-	* igv v2.3.60
-	* java
+* SLURM v17.02.6
+* novoalign v3.07.00
+* stringtie v1.3.3b  
+* samtools v1.6
+* pandas v0.20.3
+* pysam v0.11.0
+* igv v2.3.60
+* java
 
 ### SETUP
 	
