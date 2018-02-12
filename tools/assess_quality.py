@@ -9,20 +9,20 @@ from utils import *
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-s', '--samples', required=True,
-						help='Sample summary metadata file.')
 	parser.add_argument('-g', '--group_num', required=True, type=int, 
 						help='Experiment group number.')
+	parser.add_argument('-r', '--max_replicates', required=True, type=int,
+						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-w', '--wildtype', required=True,
 						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
 	parser.add_argument('-l', '--gene_list', required=True,
 						help='Gene list.')
 	parser.add_argument('-c', '--resistance_cassettes', required=True,
-						help='Resistance cassettes used for detecting wildtype and mutant sample outlier. Use "," as delimiter if multiple cassettes exist.')
+						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sample quality summary.')
-	parser.add_argument('--max_replicates', default=4,
-						help='Maximal number of replicate in experiment design.')
+	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
+						help='Sample summary metadata file.')
 	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
@@ -35,7 +35,7 @@ def initialize_dataframe(samples, df_cols, group):
 	Define the QC dataframe.
 	"""
 	df = pd.DataFrame(columns=df_cols)
-	df2 = pd.read_csv(samples, delimiter='\t')
+	df2 = pd.read_excel(samples, dtype=np.str)
 	df2 = df2[df2['GROUP'] == group][['GENOTYPE','REPLICATE','SAMPLE']]
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
@@ -226,13 +226,20 @@ def save_dataframe(filepath, df, df_cols):
 
 def main(argv):
 	parsed = parse_args(argv)
+	## validate args
 	if os.path.exists(parsed.output_filepath):
 		sys.exit('WARNING: %s already exists, rename the file to proceed.' % parsed.output_filepath)
+	if not os.path.exists(parsed.samples):
+		sys.exit('ERROR: %s does not exist.' % parsed.samples)
+	if not os.path.exists(os.path.dirname(parsed.output_filepath)):
+		sys.exit('ERROR: %s does not exist.' % os.path.dirname(parsed.output_filepath))
 
+	## load QC config data
 	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
 	global QC_dict
 	QC_dict = load_config(parsed.qc_configure)
 
+	## do QA
 	print '... Preparing QA dataframe'
 	resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
 	df_columns = ['GENOTYPE','REPLICATE','SAMPLE', \
