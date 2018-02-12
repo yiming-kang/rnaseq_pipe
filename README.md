@@ -1,5 +1,7 @@
 # crypto_pipe.dev
 
+![pipeline](pipeline_illustration.png)
+
 ### REQUIREMENT
 1. This pipeline uses SLURM workload manager to streamline the RNAseq analysis. Tested on SLURM v17.02.6.
 
