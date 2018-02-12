@@ -266,6 +266,6 @@ with open(opts.g, 'w') as csvfile:
 ##    my_writer.writerow([""]+samples)
 ##    my_writer.writerows(geneDict)
     my_writer.writerow(dict((fn,fn) for fn in my_writer.fieldnames))
-    for i in geneDict:
+    for i in sorted(geneDict):
         geneDict[i]["gene_id"] = i #add gene_id to row
         my_writer.writerow(geneDict[i])

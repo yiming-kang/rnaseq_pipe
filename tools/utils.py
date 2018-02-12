@@ -29,7 +29,7 @@ def make_combinations(lst):
 	combo = []
 	for i in range(len(lst), 1, -1):
 		for s in combinations(lst, i):
-			combo.append(s)
+			combo.append(sorted(s))
 	return combo
 
 

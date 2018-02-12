@@ -31,14 +31,10 @@ def build_header(samples_filepath, group, email=None):
 	"""
 	## parse sample sheet
 	samples = pd.read_excel(samples_filepath, dtype=np.str)
-	samples_matched = samples[samples['GROUP'] == group]
-	num_samples = samples_matched.shape[0]
+	samples_valid = samples[(samples['GROUP'] == group) & (samples['ST_PIPE'] != '1')]
+	num_samples = samples_valid.shape[0]
 	## write a lookup file
-	lookup_filepath = 'job_scripts/lookup_files/group_'+ group
-	writer = open(lookup_filepath, 'w')
-	for i,row in samples_matched.iterrows(): 
-		writer.write('%s-%s\t%s\n' % (row['GENOTYPE'], row['SAMPLE'], row['FILE']))
-	writer.close()
+	lookup_filepath = prepare_lookup_file(samples_valid, group)
 	## write job script
 	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=24G\n'
 	job	+= '#SBATCH --array=1-%d%%32\n' % num_samples 
@@ -59,7 +55,7 @@ def build_alignment(genome_index):
 		+ '\trm -rf alignment/novoalign/${sample_id} || :\n' \
 		+ '\tmkdir -p alignment/novoalign/${sample_id}\n' 
 	job += '\tnovoalign -c ${SLURM_CPUS_PER_TASK} -o SAM -d %s -f ${seq_file} 2>alignment/novoalign/${sample_id}/novoalign.log | samtools view -bS > alignment/novoalign/${sample_id}/aligned_reads.bam\n' % genome_index
-	job += 'novosort --threads ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads.bam >  alignment/novoalign/${sample_id}/aligned_reads_sorted.bam 2> alignment/novoalign/${sample_id}/novosort.log\n' \
+	job += '\tnovosort --threads ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads.bam >  alignment/novoalign/${sample_id}/aligned_reads_sorted.bam 2> alignment/novoalign/${sample_id}/novosort.log\n' \
 		+ '\trm alignment/novoalign/${sample_id}/aligned_reads.bam\n' \
 		+ 'fi\n\n'
 	return job
@@ -73,15 +69,31 @@ def build_expression_quantification(reference_gtf, gene_list):
 		+ 'then\n' \
 		+ '\trm -rf expression/stringtie/${sample_id} || :\n' \
 		+ '\tmkdir -p expression/stringtie/${sample_id}\n' \
-		+ '\trm -rf expression/stringtie_fpkm/${sample_id} || :\n' \
-		+ '\tmkdir -p expression/stringtie_fpkm/${sample_id}\n' 
+		+ '\trm -rf expression/stringtie_fpkm/${sample_id} || :\n' 
 	job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${sample_id}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${sample_id}/stringtie_out.gtf -A expression/stringtie/${sample_id}/gene_abundances.tab\n' % reference_gtf
 	job += '\tpython tools/stringtie2fpkm.py expression/stringtie/${sample_id}/gene_abundances.tab %s > expression/stringtie_fpkm/${sample_id}.expr\n' % gene_list
 	job += 'fi\n'
 	return job
 
 
-def write_job_scripts(jobs, filepath):
+def prepare_lookup_file(samples, group):
+	"""
+	Prepare lookup file for sbatch runs
+	"""
+	lookup_align, lookup_expr = '', ''
+	for i,row in samples.iterrows(): 
+		sample = row['GENOTYPE'] +'-'+ row['SAMPLE']
+		expr_file = 'expression/stringtie/'+ sample +'/stringtie_out.gtf'
+		lookup_align += '%s\t%s\n' % (sample, row['FILE'])
+		lookup_expr += '%s\t%s\n' % (sample, expr_file)
+	## write file
+	lookup_filepath_prefix = 'job_scripts/lookup_files/group_'+ group
+	write_file(lookup_align, lookup_filepath_prefix +'_align')
+	write_file(lookup_expr, lookup_filepath_prefix +'_expr')
+	return lookup_filepath_prefix +'_align'
+
+
+def write_file(jobs, filepath):
 	"""
 	Write SBATCH file
 	"""
@@ -109,7 +121,7 @@ def main(argv):
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
 	jobs += build_expression_quantification(parsed.reference_gtf, parsed.gene_list)
-	write_job_scripts(jobs, parsed.output_filepath)
+	write_file(jobs, parsed.output_filepath)
 	
 
 if __name__ == '__main__':

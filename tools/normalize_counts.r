@@ -51,11 +51,11 @@ write_indiv_count_file <- function(norm_count_mtx, samples, gene_lengths=NULL) {
 		filepath <- paste0('expression/stringtie_deseq_norm/', sample)
 		count_out <- norm_count_mtx[,c(sample)]
 		write.table(count_out, file=paste0(filepath,'.count'), quote=FALSE, row.names=FALSE, col.names=FALSE)
-		## caluclate FPKMs if gene lengths are given
-		if (!is.null(gene_lengths)) {
-			fpkm_out <- count_out / (genes_len*sum(count_out)) * 10^9
-			write.table(fpkm_out, file=paste0(filepath,'.fpkm'), quote=FALSE, row.names=FALSE, col.names=FALSE)
-		}
+		# ## caluclate FPKMs if gene lengths are given
+		# if (!is.null(gene_lengths)) {
+		# 	fpkm_out <- count_out / (genes_len*sum(count_out)) * 10^9
+		# 	write.table(fpkm_out, file=paste0(filepath,'.fpkm'), quote=FALSE, row.names=FALSE, col.names=FALSE)
+		# }
 	}
 }
 

@@ -9,7 +9,7 @@ from utils import *
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-g', '--group_num', required=True, type=int, 
+	parser.add_argument('-g', '--group_num', required=True, 
 						help='Experiment group number.')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='Maximal number of replicate in experiment design.')
@@ -210,7 +210,7 @@ def update_auto_audit(df, threshold):
 	"""
 	Automatically flag sample with status over threshold 
 	"""
-	df['AUTO_AUDIT'][np.where(df['STATUS'] > threshold)[0]] = 1
+	df.loc[df['STATUS'] > threshold, 'AUTO_AUDIT'] = 1
 	return df
 
 
