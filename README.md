@@ -3,19 +3,17 @@
 ![pipeline](pipeline_illustration.png)
 
 ### REQUIREMENT
-1. This pipeline uses SLURM workload manager to streamline the RNAseq analysis. Tested on SLURM v17.02.6.
 
-2. The following tools/modules are required. Tested on the respective versions. Install if running on other clusters. 
-
-	```
-	module load novoalign/3.07.00
-	module load stringtie/1.3.3b  
-	module load samtools/1.6
-	module load pandas/0.20.3
-	module load pysam/0.11.0
-	module load igv/2.3.60
-	module load java
-	```
+This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules are required. Tested on the respective versions. 
+	
+	* SLURM v17.02.6
+	* novoalign v3.07.00
+	* stringtie v1.3.3b  
+	* samtools v1.6
+	* pandas v0.20.3
+	* pysam v0.11.0
+	* igv v2.3.60
+	* java
 
 ### SETUP
 	
@@ -52,7 +50,6 @@
 	biocLite("NOISeq")
 	```
 
-
 ### USAGE
 
 1. Preparation of sequence files and metadata file 
@@ -72,7 +69,7 @@
 
 2. Reads alignment and expression quantification
 	
-	This builds the SLURM job script from sample metadata. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
+	This builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
 	
 	```
 	python tools/build_stage1.py -i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 -o job_scripts/stage1.sbatch
