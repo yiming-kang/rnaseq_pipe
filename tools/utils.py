@@ -2,7 +2,7 @@
 import os
 import re
 import numpy as np
-from itertools import combinations
+from itertools import combinations, product
 import yaml
 
 
@@ -31,6 +31,26 @@ def make_combinations(lst):
 		for s in combinations(lst, i):
 			combo.append(sorted(s))
 	return combo
+
+
+def make_list_product(lst):
+	"""
+	Make all possible value combination, with each value coming from a each list. Support up to 10 lists.
+	"""
+	if len(lst) == 0:
+		return None
+	elif len(lst) == 1:
+		return list(product(lst[0]))
+	elif len(lst) == 2:
+		return list(product(lst[0], lst[1]))
+	elif len(lst) == 3:
+		return list(product(lst[0], lst[1], lst[2]))
+	elif len(lst) == 4:
+		return list(product(lst[0], lst[1], lst[2], lst[3]))
+	elif len(lst) == 5:
+		return list(product(lst[0], lst[1], lst[2], lst[3], lst[4]))
+	else:
+		sys.exit('ERROR: List length beyond what I can handle')
 
 
 def load_config(json_file):

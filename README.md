@@ -27,7 +27,7 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 2. Make direcotries. 
 
 	```
-	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_fpkm},job_scripts,log,reports,sequence}
+	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},job_scripts,log,reports,sequence}
 	```
 
 3. [Optional] Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
@@ -57,15 +57,9 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	1. Make soft link or copy fastq files to sequence. `*.gz` sequence files are acceptable.
 	2. Update sample summary metadata file.
 
-		Single batch:
-		```
-		python tools/prepare_samples.py -m metadata/EXPERIMENT_9.xlsx
-		```
-
-		Mutliple batches to be analyzed together:
-		```
-		python tools/prepare_samples.py -m metadata/EXPERIMENT_9.xlsx,metadata/EXPERIMENT_10.xlsx,metadata/EXPERIMENT_11.xlsx -g 1
-		```
+	```
+	python tools/prepare_samples.py -m metadata/EXPERIMENT_10.xlsx -g 10
+	```
 
 2. Reads alignment and expression quantification
 	

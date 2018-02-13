@@ -34,12 +34,12 @@ def build_header(samples_filepath, group, email=None):
 	## parse sample sheet
 	samples = pd.read_excel(samples_filepath, dtype=np.str)
 	samples_valid = samples[(samples['GROUP'] == group) & (samples['ST_PIPE'] != '1')]
-	num_samples = samples_valid.shape[0]
+	n_lines = samples_valid.shape[0]+1
 	## write a lookup file
 	lookup_filepath = prepare_lookup_file(samples_valid, group)
 	## write job script
 	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=24G\n'
-	job	+= '#SBATCH --array=1-%d%%32\n' % num_samples 
+	job	+= '#SBATCH --array=1-%d%%32\n' % n_lines
 	job += '#SBATCH -D ./\n#SBATCH -o log/stage1_%A_%a.out\n#SBATCH -e log/stage1_%A_%a.err\n#SBATCH -J stage1\n'
 	if email is not None:
 		job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % email
