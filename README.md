@@ -34,15 +34,15 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 
 3. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
 
-	1. On your local computer, make a directory `$HOME/igv/<strain>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
+	1. On your local computer, make a directory `$HOME/igv/<genome>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
 	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
 	3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
-	4. Copy your local directory `$HOME/igv/<strain>` (including an indexing file `.fasta.fai` built by IGV) to the cluster directory `$HOME/igv/<strain>`.
+	4. Copy your local directory `$HOME/igv/<genome>` (including an indexing file `.fasta.fai` built by IGV) to the cluster directory `$HOME/igv/<genome>`.
 	5. Go to the cluster IGV directory. Edit the following lines in file `$HOME/igv/prefs.properties`:
 
 	```
-	DEFINE_GENOME_INPUT_DIRECTORY_KEY=<your_cluster_home_dir>/igv/<strain>
-	DEFAULT_GENOME_KEY=<strain>
+	DEFINE_GENOME_INPUT_DIRECTORY_KEY=<your_cluster_home_dir>/igv/<genome>
+	DEFAULT_GENOME_KEY=<genome>
 	```
 
 4. **[Optional]** Install NOISeq package from Bioconductor.
@@ -85,7 +85,7 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 		* Replicate concordance
 		* Efficiency of the replaced drug-marker gene. 
 
-	The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
+		The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	
 	```
 	ml pandas/0.20.3
