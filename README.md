@@ -1,5 +1,7 @@
 # crypto_pipe.dev
 
+This RNA-seq analysis pipeline is designed for processing data generated from gene perturbation, time series, and multiple level treatment experiments. As illustrated in the following figure, the pipeline modules align Illumina reads, quantify transcriptomic expression, assess sample quality, analyze differential expression (DE), and generate user-friendly reports. Its optional modules provide more thorough quality analysis and help guide future experimental design. The pipeline aim at minimizing human effort in metadata maintenance, sample quality assessment and DE design, while maximizing the versatility in handling complex experiment design. 
+
 ![pipeline](pipeline_illustration.png)
 
 ### REQUIREMENT
@@ -21,7 +23,7 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	
 	```
 	ml novoalign/3.07.00
-	novoindex H99/crNeoH99.nix H99/crNeoH99.fasta 
+	novoindex <genome>.nix <genome>.fasta 
 	```
 
 2. Make direcotries. 
@@ -30,7 +32,7 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},job_scripts,log,reports,sequence}
 	```
 
-3. [Optional] Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
+3. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
 
 	1. On your local computer, make a directory `$HOME/igv/<strain>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
 	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
@@ -43,7 +45,7 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	DEFAULT_GENOME_KEY=<strain>
 	```
 
-4. [Optional] Install NOISeq package from Bioconductor.
+4. **[Optional]** Install NOISeq package from Bioconductor.
 
 	```
 	source("https://bioconductor.org/biocLite.R")
@@ -52,53 +54,54 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 
 ### USAGE
 
-1. Preparation of sequence files and metadata file 
+1. Data preparation and pre-alignment QC
 	
-	1. Make soft link or copy fastq files to sequence. `*.gz` sequence files are acceptable.
-	2. Update sample summary metadata file.
+	1. Make a subdirectory `sequence/run_<#>_samples/` for the batch. Make soft link or copy the reads files to it. Both zipped `*.gz` or unzipped fastq reads files are acceptable.
+	2. **[Optional]** Update the thresholds for sample QC in configrue file `tools/qc_config.yaml`.
+	3. Prepare samples that will be analyzed together in the same analysis group. This module sifts low-quality sample before alignment, update sample summary sheet, and generates a design table with default contrast group that will be used in DE analysis.
 
 	```
-	python tools/prepare_samples.py -m metadata/EXPERIMENT_10.xlsx -g 10
+	python tools/prepare_samples.py -g <group_#> -m metadata/<metadata>.xlsx -d reports/design_table.<group_#>.xlsx -w <wildtype> 
 	```
 
-2. Reads alignment and expression quantification
+2. Reads alignment and transcriptomic expression quantification
 	
-	This builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The system may also send notification to user when the run fails or completes.
+	This module builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The user may opt to recive email notification when the run fails or completes.
 	
 	```
-	python tools/build_stage1.py -i H99/crNeoH99.nix -r H99/crNeoH99.gtf -l H99/gids -g 10 -o job_scripts/stage1.sbatch
-	sbatch job_scripts/stage1.sbatch
+	python tools/build_stage1.py -g <group_#> -i <genome>.nix -r <gene_annotation>.gtf -l <gene_list> -o job_scripts/<stage1_job>.sbatch --mail_user <email_address>
+	sbatch job_scripts/<stage1_job>.sbatch
 	```
 
 3. Quality assessment
 
-	1. Assess the quality of each sample. The metrics used in this assessment are:
+	1. Assess the quality of each sample. The QC metrics are the followings:
 		* Total read count
 		* Percentage of uniquely aligned reads
 		* Efficiency of gene perturbation
 		* Replicate concordance
 		* Efficiency of the replaced drug-marker gene. 
 
-		The status is in bit form (encoding of the corresponding flags is stored in qc_config.yaml).
+	The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	
 	```
 	ml pandas/0.20.3
-	python tools/assess_quality.py -l H99/gids -g 10 -r 4 -w CNAG_00000 -c CNAG_G418,CNAG_NAT -o reports/sample_quality.group_10.xlsx
+	python tools/assess_quality.py -g <group_#> -l <gene_list> -r <max_replicate_#> -w <wildtype> -c <marker_genes> -o reports/sample_quality.<group_#>.xlsx
 	```
 
-	2. [Optional] Assess the efficiency of gene perturbation. Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled as `[sample]gene_mutant.png`.
+	2. **[Optional]** Assess the efficiency of gene perturbation. Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled `[<sample>]<gene_mutant>.png`. Two snapshots will be made for double mutant, and so forth.
 
 	```
 	ml pysam/0.11.0
-	python tools/build_igv_snapshot.py -q reports/sample_quality.group_10.xlsx -g H99/crNeoH99.gtf -gm H99 -o reports/inefficient_mutation.group_10/
+	python tools/build_igv_snapshot.py -q reports/sample_quality.<group_#>.xlsx -g <gene_annotation>.gtf -gm <genome> -o reports/inefficient_mutation.<group_#>/
 	sbatch job_scripts/igv_snapshot.sbatch
 	```
 
-	3. [Optional] Make saturation plots for samples grouped by genotype. The output plot is title as `[genotype].png`
+	3. **[Optional]** Make saturation plots for samples grouped by genotype. Each output plot titled `[genotype].png` contains all replicates/samples belonging to the same genotype.
 
 	```
 	ml R/3.2.1
-	Rscript tools/make_saturation_curve.r -i expression/stringtie_gene_count_matrix.csv -o reports/saturation_curves.group_9_10
+	Rscript tools/make_saturation_curve.r -i <count_matrix>.csv -o reports/saturation_curves.<group_#>/
 	```
 
 4. Differential expression  
