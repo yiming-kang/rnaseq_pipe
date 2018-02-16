@@ -1,5 +1,9 @@
-./alignment
-./expression
-./job_scripts
-./log
-./reports
+alignment/
+expression/
+job_scripts/
+log/
+reports/
+sequence
+._*
+.DS_Store
+tools/.DS_Store

@@ -103,12 +103,12 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	sbatch job_scripts/igv_snapshot.sbatch
 	```
 
-	3. **[Optional]** Make saturation plots for samples grouped by genotype. Each output plot titled `[genotype].png` contains all replicates/samples belonging to the same genotype.
+	3. **[Optional]** Make saturation plots for samples grouped by genotype. Each output plot titled `[genotype].png` contains all replicates/samples belonging to the same genotype. `-k` is the stringency to detect features with > k counts.
 
 	```
 	ml R/3.2.1
 	Rscript tools/make_saturation_curve.r -i <count_matrix>.csv \
-			-o reports/saturation_curves.<group_#>/
+			-k 0 -o reports/saturation_curves.<group_#>/
 	```
 
 4. Differential expression  
