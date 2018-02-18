@@ -1,10 +1,33 @@
 library(optparse)
-library(DESeq2)
+library(xlsx)
+# library(DESeq2)
 
-option_list <- list(
-	make_option(c('-i', '--file_count_mtx'), help='Read count matrix (genes x samples)'),
-	make_option(c('-o', '--file_output'), help='Table of DE genes ranked by ajusted p-value'))
-opt <- parse_args(OptionParser(option_list=option_list))
+parse_arguments <- function(){
+	option_list <- list(
+		make_option(c('-c', '--count_mtx'), 
+					help='Read count matrix (genes x samples).'),
+		make_option(c('-d', '--design_table'), 
+					help='Design table containing sample grouping indicator.'),
+		make_option(c('-q', '--qa_table'), 
+					help='QC table containing audit stauts.'),
+		make_option(c('-o', '--output_dir'), 
+					help='Table of DE genes ranked by ajusted p-value.'))
+	opt <- parse_args(OptionParser(option_list=option_list))
+	return(opt)
+}
+
+
+parse_metadata <- function(design_filepath, qa_filepath) {
+	## Parse design and QA tables
+	design <- read.xlsx(design_filepath, sheetIndex=1, check.names=FALSE)
+	print(colnames(design))
+	q()
+}
+
+
+## main
+parsed_opt <- parse_arguments()
+parse_metadata(parsed_opt$design_table, parsed_opt$qa_table)
 
 ## parse count matrix in data.frame format
 cat('... preparing data\n')

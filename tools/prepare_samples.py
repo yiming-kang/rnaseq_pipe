@@ -136,7 +136,7 @@ def build_design_table(summary_df, cmp_cols, wt=None):
 			## get rows matching the column value combo
 			df2 = summary_df[sum([summary_df[other_cols[k]] == vcombo[k] \
 								for k in range(n_other_cols)]) == n_other_cols]
-			vcombo_name = '|'.join([':'.join([other_cols[k], vcombo[k]]) \
+			vcombo_name = '-'.join([':'.join([other_cols[k], vcombo[k]]) \
 									for k in range(n_other_cols)])
 			## assess diff column types
 			if col == 'GENOTYPE' and wt is not None:
@@ -144,9 +144,9 @@ def build_design_table(summary_df, cmp_cols, wt=None):
 				vals.remove(wt)
 				for val in vals:
 					## concatenate new column and set flag
-					new_col = ''.join(['[',vcombo_name,']',col,':',wt,'~',val])
+					new_col = ''.join(['[',vcombo_name,']',col,':',wt,'-',val])
 					design_df = pd.concat([design_df, pd.Series(['']*design_df.shape[0], name=new_col)], axis=1)
-					design_df.loc[df2.index[df2[col] == wt], new_col] = '1'
+					design_df.loc[df2.index[df2[col] == wt], new_col] = '0'
 					design_df.loc[df2.index[df2[col] == val], new_col] = '1'
 			else: 
 				## TODO: extend the function for other columns

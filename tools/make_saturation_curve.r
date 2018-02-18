@@ -5,8 +5,12 @@ options(bitmapType='cairo') ## enable X11
 
 parse_arguments <- function(){
 	option_list <- list(
-		make_option(c('-i', '--file_count_mtx'), help='Read count matrix (genes x samples)'),
-		make_option(c('-o', '--dir_output'), help='Table of DE genes ranked by ajusted p-value'))
+		make_option(c('-i', '--file_count_mtx'), 
+					help='Read count matrix (genes x samples)'),
+		make_option(c('-k', '--detection_k',
+					help='Features detected with > k counts')),
+		make_option(c('-o', '--dir_output'), 
+					help='Table of DE genes ranked by ajusted p-value'))
 	opt <- parse_args(OptionParser(option_list=option_list))
 	return(opt)
 }
@@ -32,7 +36,7 @@ get_genotypes <- function(cnts) {
 }
 
 
-make_saturation_curves <- function(cnts, geno_hash, dir_output) {
+make_saturation_curves <- function(cnts, geno_hash, dir_output, det_k=0) {
 	## Make satruation curves plot for each genotype
 	print(names(geno_hash)) 
 	for (geno in names(geno_hash)) {
@@ -44,7 +48,7 @@ make_saturation_curves <- function(cnts, geno_hash, dir_output) {
 		factors <- data.frame(reps=seq(num_samples), row.names=samples)
 		data <- readData(data=cnts[samples], factors=factors)
 		## estimate saturation
-		sat_est <- dat(data, k=0, ndepth=10, type='saturation')
+		sat_est <- dat(data, k=det_k, ndepth=10, type='saturation')
 		## plot curves
 		filepath <- paste0(dir_output, '/', geno, '.png')
 		png(filepath, width=960, height=960, res=150)
@@ -58,6 +62,6 @@ parsed_opt <- parse_arguments()
 cnts <- load_count_matrix(parsed_opt$file_count_mtx)
 geno_hash <- get_genotypes(cnts)
 dir.create(parsed_opt$dir_output, showWarnings=FALSE)
-make_saturation_curves(cnts, geno_hash, parsed_opt$dir_output)
+make_saturation_curves(cnts, geno_hash, parsed_opt$dir_output, parsed_opt$detection_k)
 
 

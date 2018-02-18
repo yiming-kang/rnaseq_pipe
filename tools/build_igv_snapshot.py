@@ -101,7 +101,7 @@ def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, email=None, job_
 	for sample in ineffmut_dict.keys():
 		bam_file = ineffmut_dict[sample]['bam']
 		bed_file = ineffmut_dict[sample]['bed']
-		job += 'python tools/IGV-snapshot-automator/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -o %s\n' % (bam_file, bed_file, igv_genome, igv_output_dir)
+		job += 'python tools/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -o %s\n' % (bam_file, bed_file, igv_genome, igv_output_dir)
 	writer = open(job_script, 'w')
 	writer.write('%s' % job)
 	writer.close()

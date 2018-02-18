@@ -15,14 +15,14 @@ def parse_args(argv):
 						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-w', '--wildtype', required=True,
 						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
-	parser.add_argument('-c', '--resistance_cassettes', required=True,
-						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sample quality summary.')
 	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
 						help='Sample summary metadata file.')
 	parser.add_argument('-l', '--gene_list',
 						help='Use a custom gene list other than the list in gene annotation file.')
+	parser.add_argument('-c', '--resistance_cassettes',
+						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
@@ -69,13 +69,15 @@ def load_expression_data(df, group, gene_list, expr_tool='stringtie'):
 	"""
 	Load count matrix, and make a sample dictionary.
 	"""
-	gids = pd.read_csv(gene_list)
 	## load count matrix
 	filepath = 'expression/%s_count_matrix/normalized_count_matrix.group_%s.csv' % (expr_tool, group)
+	if not os.path.exists(filepath):
+		sys.exit('ERROR: %s does not exit' %s filepath)
 	count = pd.read_csv(filepath)
 	count = count.rename(columns={'Unnamed: 0':'gene'})
 	## find the intersected gene list
-	if gids is not None:
+	if gene_list is not None:
+		gids = pd.read_csv(gene_list)
 		if len(np.setdiff1d(gids, count['gene'])) > 0:
 			print 'WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.'
 		gids = np.intersect1d(gids, count['gene'])
@@ -159,6 +161,8 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 	Assess drug resistance marker gene expression, making sure the proper
 	marker gene is swapped in place of the perturbed gene.
 	"""
+	if resi_cass is None:
+		return df
 	## get the median of resistance cassettes
 	rc_med_dict = {}
 	mut_samples = [s for s in expr.columns.values if (not s.startswith(wt)) and (s != 'gene')]
@@ -268,10 +272,15 @@ def main(argv):
 
 	## do QA
 	print '... Preparing QA dataframe'
-	resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
+	if parsed.resistance_cassettes is None:
+		resistance_cassettes = None
+		resistance_cassettes_columns = []
+	else:
+		resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
+		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
 	df_columns = ['GENOTYPE','REPLICATE','SAMPLE', \
 					'TOTAL','COMPLEXITY','MUT_FOW'] \
-				+ [rc+'_FOM' for rc in resistance_cassettes] \
+				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num)
