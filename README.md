@@ -8,31 +8,25 @@ This RNA-seq analysis pipeline is designed for processing data generated from ge
 
 This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules/packages are required and tested on the respective versions:
 
-	```	
 	SLURM v17.02.6
 	novoalign v3.07.00
 	stringtie v1.3.3b  
 	samtools v1.6
 	igv v2.3.60
 	java
-	```
 
 Python packages:
 
-	```
 	pandas v0.20.3
 	pysam v0.11.0
 	openpyxl v2.5.0
 	xlrd v1.1.0
-	```
 
 R packages:
 
-	```
 	DESeq2 v1.10.1
 	EdgeR v3.12.1
 	NOISeq v2.14.1
-	```
 
 ### SETUP
 	
@@ -58,9 +52,7 @@ R packages:
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},diffexpr/{deseq2,edger},job_scripts/{lookup_files},log,reports,sequence}
 	```
 
-4. Install Python packages, if not available.
-	1. Download and install [pip](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
-	2. Install `pandas`, `pysam`, `pyyaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
+4. Install Python packages. If not availabel, install `pandas`, `pysam`, `pyyaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
 
 	```
 	pip install --user <package_name>
