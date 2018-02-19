@@ -36,7 +36,7 @@ R packages:
 2. Make direcotries. 
 
 	```
-	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},job_scripts/{lookup_files},log,reports,sequence}
+	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},diffexpr/{deseq2,edger},job_scripts/{lookup_files},log,reports,sequence}
 	```
 
 3. **[Optional]** Install Python packages, if not available.
@@ -128,7 +128,7 @@ R packages:
 			-k 0 -o reports/saturation_curves.group_<group_#>/
 	```
 
-	4. Manually audit sample quality in `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT, put your name in USER and your reason of the rescue decision.
+	4. Manually audit sample quality in `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT for the corresponding sample, put your name in USER and your reason of the rescue decision; otherwise, leave it blank.
 
 	5. Update audit of sample summary.
 
@@ -137,4 +137,14 @@ R packages:
 	```
 
 4. Differential expression  
+
+	1. DESeq2
+
+	```
+	ml R/3.2.1
+	Rscript tools/deseq2.r -c expression/stringtie_count_matrix/count_matrix.group_<group_#>.csv \
+	-d reports/design_table.group_<group_#>.xlsx -q reports/sample_quality.group_<group_#>.xlsx \
+	-o diffexpr/deseq2/group_<group_#>/
+	```
+
 
