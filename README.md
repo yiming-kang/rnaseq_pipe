@@ -39,16 +39,25 @@ R packages:
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},diffexpr/{deseq2,edger},job_scripts/{lookup_files},log,reports,sequence}
 	```
 
-3. **[Optional]** Install Python packages, if not available.
+3. Install Python packages, if not available.
 	1. Download and install [pip](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
-	2. Install `pandas`, `pysam`, `yaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
+	2. Install `pandas`, `pysam`, `pyyaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
 
 	```
 	pip install --user <package_name>
 	```
 
+4. Install R packages in R interactive session, if not available.
 
-4. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
+	```R
+	> source("https://bioconductor.org/biocLite.R")
+	> biocLite("DESeq2")
+	> biocLite("edgeR")
+	> biocLite("NOISeq")
+	```
+
+
+5. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
 	1. On your local computer, make a directory `$HOME/igv/<genome>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
 	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
 	3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
@@ -58,13 +67,6 @@ R packages:
 	```
 	DEFINE_GENOME_INPUT_DIRECTORY_KEY=<your_cluster_home_dir>/igv/<genome>
 	DEFAULT_GENOME_KEY=<genome>
-	```
-
-5. **[Optional]** Install NOISeq package from Bioconductor, if not available.
-
-	```
-	source("https://bioconductor.org/biocLite.R")
-	biocLite("NOISeq")
 	```
 
 ### USAGE
@@ -86,20 +88,20 @@ R packages:
 	This module builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The user may opt to recive email notification when the run fails or completes.
 	
 	```
-	python tools/build_stage1.py -g <group_#> -l <gene_list> -i <genome>.nix \
-			-r <gene_annotation>.gtf -o job_scripts/<stage1_job>.sbatch \
+	python tools/build_reads_processing.py -g <group_#> -l <gene_list> -i <genome>.nix \
+			-r <gene_annotation>.gtf -o job_scripts/<readsproc_job>.sbatch \
 			--mail_user <email_address>
-	sbatch job_scripts/<stage1_job>.sbatch
+	sbatch job_scripts/<readsproc_job>.sbatch
 	```
 
 3. Quality assessment
 
 	1. Assess the quality of each sample. The QC metrics are the followings:
-		* Total read count
-		* Percentage of uniquely aligned reads
-		* Efficiency of gene perturbation
-		* Replicate concordance
-		* Efficiency of the replaced drug-marker gene. 
+		* TOTAL_READS: Total read count
+		* COMPLEXITY: Percentage of uniquely aligned reads
+		* MUT_FOW: Efficiency of gene perturbation
+		* MARKER_FOM: Efficiency of the replaced drug-marker gene
+		* COV_MED: Replicate concordance
 
 		The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	

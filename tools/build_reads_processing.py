@@ -39,8 +39,8 @@ def build_header(samples_filepath, group, email=None):
 	lookup_filepath = prepare_lookup_file(samples_valid, group)
 	## write job script
 	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=24G\n'
-	job	+= '#SBATCH --array=1-%d%%32\n' % n_lines
-	job += '#SBATCH -D ./\n#SBATCH -o log/stage1_%A_%a.out\n#SBATCH -e log/stage1_%A_%a.err\n#SBATCH -J stage1\n'
+	job	+= '#SBATCH --array=1-%d%%%d\n' % (n_lines, min(n_lines,32))
+	job += '#SBATCH -D ./\n#SBATCH -o log/readsproc_%A_%a.out\n#SBATCH -e log/readsproc_%A_%a.err\n#SBATCH -J readsproc\n'
 	if email is not None:
 		job += '#SBATCH --mail-type=END,FAIL\n#SBATCH --mail-user=%s\n' % email
 	job += '\nml novoalign/3.07.00\nml samtools/1.6\nml stringtie/1.3.3b\nml R/3.2.1\n'
@@ -93,21 +93,21 @@ def prepare_lookup_file(samples, group):
 	Prepare lookup file for sbatch runs
 	"""
 	## create lookup data for each sample
-	lookup_stage1, lookup_expr = '', ''
+	lookup_readsproc, lookup_expr = '', ''
 	for i,row in samples.iterrows(): 
 		sample = row['GENOTYPE'] +'-'+ row['SAMPLE']
 		expr_file = 'expression/stringtie/'+ sample +'/stringtie_out.gtf'
-		lookup_stage1 += '%s\t%s\n' % (sample, row['FILE'])
+		lookup_readsproc += '%s\t%s\n' % (sample, row['FILE'])
 		lookup_expr += '%s\t%s\n' % (sample, expr_file)
 	## create laste line 
-	lookup_stage1 += 'expression/stringtie_count_matrix/count_matrix.group_%s.csv\texpression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv\n' % (group, group)
+	lookup_readsproc += 'expression/stringtie_count_matrix/count_matrix.group_%s.csv\texpression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv\n' % (group, group)
 	## write file
 	lookup_filepath_prefix = 'job_scripts/lookup_files/group_'+ group
-	lookup_stage1_filepath = lookup_filepath_prefix +'.stage1.txt'
+	lookup_readsproc_filepath = lookup_filepath_prefix +'.readsproc.txt'
 	lookup_expr_filepath = lookup_filepath_prefix +'.expr.txt'
-	write_file(lookup_stage1, lookup_stage1_filepath)
+	write_file(lookup_readsproc, lookup_readsproc_filepath)
 	write_file(lookup_expr, lookup_expr_filepath)
-	return lookup_stage1_filepath
+	return lookup_readsproc_filepath
 
 
 def write_file(jobs, filepath):
