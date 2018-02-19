@@ -189,12 +189,13 @@ def main(argv):
 	## build sample summary sheet
 	summary_df = build_sample_summary(parsed.samples, metadata, df_columns,
 									qc_columns, parsed.group_num, conditions)
-	# save_dataframe(parsed.samples, summary_df, df_cols=df_columns)
+	save_dataframe(parsed.samples, summary_df, df_cols=df_columns)
 
 	## build design table
-	design_df = build_design_table(summary_df[summary_df['GROUP']==parsed.group_num],
-									conditions, parsed.wildtype)
-	save_dataframe(parsed.design_table, design_df, freeze_p=(1,len(conditions)+3))
+	if parsed.design_table is not None:
+		design_df = build_design_table(summary_df[summary_df['GROUP']==\
+								parsed.group_num], conditions, parsed.wildtype)
+		save_dataframe(parsed.design_table, design_df, freeze_p=(1,len(conditions)+3))
 
 
 if __name__ == '__main__':
