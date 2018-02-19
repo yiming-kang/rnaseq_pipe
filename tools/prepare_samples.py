@@ -62,7 +62,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions):
 	Add samples to dataframe from a metadata sheet.
 	Find the corresponding fastq file.
 	"""
-	## get exisiting samples, used to check adding redudant samples
+	## get exisiting samples, used to check adding redundant samples
 	check_cols = ['GENOTYPE', 'REPLICATE', 'INDUCTION', 'LIBRARY'] + conditions
 	exist_samples = get_exisiting_samples(df, check_cols)
 	## read metadata
@@ -74,10 +74,10 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions):
 	sample = 0 if df.shape[0] == 0 else max(df['SAMPLE'])
 	## update metadata
 	for i,row in df2.iterrows():
-		## check sample redudancy
+		## check sample redundancy
 		sample_descriptor = [row[col] for col in sorted(check_cols)]
 		if sample_descriptor in exist_samples:
-			sys.exit('WARNING: found existing sample:\n%s\nCheck the redudancy issue.' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)]))
+			sys.exit('WARNING: found existing sample:\n%s\nCheck the redundancy issue.\n... Abort updating sample summary.' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)]))
 		## add the unique sample id
 		sample += 1
 		df2.loc[i, 'SAMPLE'] = sample

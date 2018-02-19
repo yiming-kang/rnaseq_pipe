@@ -138,13 +138,14 @@ R packages:
 
 4. Differential expression  
 
-	1. DESeq2
+	This module run differential expression (DE) analysis of each sample contrast group in your design table. The available `<de_module>` are `deseq2` and `edger`, which are both count-based DE tools. The analysis will run on samples sifted by the combined AUTO_AUDIT and MANUAL_AUDIT in QA, if at least one sample is usable in both sub-groups, e.g. in comparison of single mutant to wildtype, we need both mutant and wildtype sub-groups have at least one sample.
 
 	```
 	ml R/3.2.1
-	Rscript tools/deseq2.r -c expression/stringtie_count_matrix/count_matrix.group_<group_#>.csv \
-	-d reports/design_table.group_<group_#>.xlsx -q reports/sample_quality.group_<group_#>.xlsx \
-	-o diffexpr/deseq2/group_<group_#>/
+	Rscript tools/run_DE.r -m <de_module> \ 
+		-d reports/design_table.group_<group_#>.xlsx \
+		-q reports/sample_quality.group_<group_#>.xlsx \
+		-c expression/stringtie_count_matrix/count_matrix.group_<group_#>.csv \
+		-o diffexpr/<de_module>/group_<group_#>/
 	```
-
 

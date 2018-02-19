@@ -1,20 +1,8 @@
-library(optparse)
-library(xlsx)
-library(DESeq2)
 
-parse_arguments <- function(){
-	option_list <- list(
-		make_option(c('-c', '--count_matrix'), 
-					help='Read count matrix (genes x samples).'),
-		make_option(c('-d', '--design_table'), 
-					help='Design table containing sample grouping indicator.'),
-		make_option(c('-q', '--qa_table'), 
-					help='QC table containing audit stauts.'),
-		make_option(c('-o', '--output_dir'), 
-					help='Table of DE genes ranked by ajusted p-value.'))
-	opt <- parse_args(OptionParser(option_list=option_list))
-	return(opt)
-}
+library(xlsx)
+
+import_deseq2 <- function() library(DESeq2)
+import_edger <- function() library(edgeR)
 
 
 parse_metadata <- function(design_filepath, qa_filepath) {
@@ -56,9 +44,9 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 }
 
 
-analyze_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
+run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 	## Run DESeq2 analysis of each contrast group
-	## prepare count and design matrices for DESeq2
+	## prepare count and design matrices 
 	contrast <- contrast_dict[[header]]
 	samples_0 <- contrast[['0']]
 	samples_1 <- contrast[['1']]
@@ -78,16 +66,35 @@ analyze_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 	}
 }
 
-## main
-parsed_opt <- parse_arguments()
-dir.create(parsed_opt$output_dir, showWarnings=FALSE)
-cat('... Parsing metadata\n')
-contrast_dict <- parse_metadata(parsed_opt$design_table, parsed_opt$qa_table)
-cat('... Loading count matrix\n')
-count_matrix <- read.csv(parsed_opt$count_matrix, check.names=FALSE, row.names=1)
-for (header in names(contrast_dict)) {
-	cat('... Working on', header, '\n')
-	analyze_deseq2(count_matrix, contrast_dict, header, parsed_opt$output_dir)
-}
 
-	
+run_edger <- function(cnt_mtx, contrast_dict, header, output_dir) {
+	## Run EdgeR analysis of each contrast group
+	## prepare count and design matrices
+	contrast <- contrast_dict[[header]]
+	samples_0 <- contrast[['0']]
+	samples_1 <- contrast[['1']]
+	if (length(samples_0) > 0 & length(samples_1) > 0) {
+		condition <- c(rep('0',length(samples_0)),rep('1',length(samples_1)))
+		samples <- c(contrast[['0']], contrast[['1']])
+		dds <- DGEList(counts=cnt_mtx[samples], group=factor(condition))
+		design_mtx <- model.matrix(~0 + dds$samples$group)
+		colnames(design_mtx) <- levels(dds$samples$group)
+		## run EdgeR
+		dds <- calcNormFactors(dds)
+		# dds <- estimateDisp(dds, design_mtx)
+		# dds <- estimateGLMCommonDisp(dds, design_mtx)
+		dds <- estimateGLMTrendedDisp(dds, design_mtx)
+		dds <- estimateGLMTagwiseDisp(dds, design_mtx)
+		fit <- glmFit(dds, design_mtx)
+		lrt <- glmLRT(fit)
+		res <- topTags(lrt, n=dim(cnt_mtx)[1], adjust.method="BH", sort.by="PValue")
+		# dds <- calcNormFactors(dds)
+		# dds <- estimateCommonDisp(dds)
+		# dds <- estimateTagwiseDisp(dds)
+		# de <- exactTest(dds, pair=c("untreated", "treated"))
+		# res <- topTags(de, n=dim(cnt_matix)[1], adjust.method="BH", sort.by="PValue")
+		## write result
+		filepath <- paste0(output_dir, '/', header, '.txt')
+		write.table(res, file=filepath, quote=FALSE, sep='\t')
+	}	
+}
