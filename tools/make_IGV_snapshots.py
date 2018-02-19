@@ -1,6 +1,8 @@
 #/usr/bin/env python
 
 '''
+Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
+
 This script will load IGV in a virtual X window, load all supplied input files
 as tracks, and take snapshots at the coorindates listed in the BED formatted
 region file.

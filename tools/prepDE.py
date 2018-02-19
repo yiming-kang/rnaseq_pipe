@@ -1,4 +1,10 @@
 #!/usr/bin/env python2
+
+"""
+Downloaded from: http://ccb.jhu.edu/software/stringtie/index.shtml?t=manual#deseq
+Modified: YK
+"""
+
 import re, csv, sys, os, glob, warnings, itertools
 from math import ceil
 from optparse import OptionParser
