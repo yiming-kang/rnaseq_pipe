@@ -23,6 +23,8 @@ def parse_args(argv):
 						help='Use a custom gene list other than the list in gene annotation file.')
 	parser.add_argument('-c', '--resistance_cassettes',
 						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
+	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
+						help='Experimental conditions that describe the sample are used to identify subgroups within each genotype. Use delimiter "," if multiple descriptors are used.')
 	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
@@ -30,13 +32,13 @@ def parse_args(argv):
 	return parser.parse_args(argv[1:])
 
 
-def initialize_dataframe(samples, df_cols, group):
+def initialize_dataframe(samples, df_cols, group, conditions):
 	"""
 	Define the QC dataframe.
 	"""
 	df = pd.DataFrame(columns=df_cols)
 	df2 = pd.read_excel(samples, dtype=np.str)
-	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['GENOTYPE','REPLICATE','SAMPLE']]
+	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['GENOTYPE','REPLICATE','SAMPLE'] + conditions]
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
@@ -65,14 +67,14 @@ def combined_expression_data(df, gids, expr_tool='stringtie'):
 	return expr, sample_dict
 
 
-def load_expression_data(df, group, gene_list, expr_tool='stringtie'):
+def load_expression_data(df, group, gene_list, conditions, expr_tool='stringtie'):
 	"""
 	Load count matrix, and make a sample dictionary.
 	"""
 	## load count matrix
 	filepath = 'expression/%s_count_matrix/normalized_count_matrix.group_%s.csv' % (expr_tool, group)
 	if not os.path.exists(filepath):
-		sys.exit('ERROR: %s does not exit' %s filepath)
+		sys.exit('ERROR: %s does not exit' % filepath)
 	count = pd.read_csv(filepath)
 	count = count.rename(columns={'Unnamed: 0':'gene'})
 	## find the intersected gene list
@@ -82,15 +84,17 @@ def load_expression_data(df, group, gene_list, expr_tool='stringtie'):
 			print 'WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.'
 		gids = np.intersect1d(gids, count['gene'])
 		count = count.loc[count['gene'].isin(gids)]
-	## make sample dict
+	## make sample dict with (genotype, condiition1, condition2, ...) as the key
 	sample_dict = {}
 	for i,row in df.iterrows():
 		genotype = row['GENOTYPE']
+		key = tuple([genotype]) if len(conditions) == 0 else \
+				tuple([genotype] + [row[c] for c in conditions])
 		sample = genotype +'-'+ str(row['SAMPLE'])
 		if sample in count.columns.values:
-			if genotype not in sample_dict.keys():
-				sample_dict[genotype] = {}
-			sample_dict[genotype][row['REPLICATE']] = sample
+			if key not in sample_dict.keys():
+				sample_dict[key] = {}
+			sample_dict[key][row['REPLICATE']] = sample
 	return count, sample_dict
 
 
@@ -130,8 +134,13 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 	overexpression by caluclating the expression of the perturbed gene
 	in mutant sample over mean expression of the same gene in wildtype.
 	"""
+	## get wildtype samples
+	wt_samples = [] 
+	for key in sample_dict.keys(): 
+		if key[0] == wt:
+			wt_samples += sample_dict[key].values()
 	## calculate mean expression level of each gene
-	wt_expr = pd.Series(pd.DataFrame.mean(expr[sample_dict[wt].values()], 
+	wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], 
 						axis=1), name='mean_fpkm')
 	wt_expr = pd.concat([expr, wt_expr], axis=1)
 	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
@@ -192,7 +201,7 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 	return df
 
 
-def assess_replicate_concordance(df, expr, sample_dict):
+def assess_replicate_concordance(df, expr, sample_dict, conditions):
 	"""
 	Assess the concordance among the replicates of each genotype by calculating
 	the COV of each combination of replicates. Then find the maximal number of
@@ -200,15 +209,16 @@ def assess_replicate_concordance(df, expr, sample_dict):
 	"""
 	cov = expr['gene']
 	## calcualte COV medians for replicate combinations
-	for genotype in sorted(sample_dict.keys()):
+	for key in sorted(sample_dict.keys()):
+		sample_ids = [s.split('-')[1] for s in sample_dict[key].values()]
 		cov_meds_dict = {}
-		rep_combos = make_combinations(sample_dict[genotype].keys())
+		rep_combos = make_combinations(sample_dict[key].keys())
 		for rep_combo in rep_combos:
-			sample_combo = [sample_dict[genotype][rep] for rep in sorted(rep_combo)]
+			sample_combo = [sample_dict[key][rep] for rep in sorted(rep_combo)]
 			## calculate COV median
 			cov_median = calculate_cov_median(expr[sample_combo])
 			rep_combo_col = 'COV_MED_REP'+''.join(np.array(rep_combo, dtype=str))
-			df.loc[df['GENOTYPE'] == genotype, rep_combo_col] = cov_median
+			df.loc[df['SAMPLE'].isin(sample_ids), rep_combo_col] = cov_median
 			## store COV median at the respective rep number
 			rep_num = len(rep_combo)
 			if rep_num not in cov_meds_dict.keys():
@@ -224,8 +234,16 @@ def assess_replicate_concordance(df, expr, sample_dict):
 				break 
 		max_rep_combo = cov_meds_dict[max(cov_meds_dict.keys())]['rep_combos'][0]
 		outlier_reps = set(max_rep_combo) - set(best_combo)
+		print key, outlier_reps
+		## update status
 		for rep in outlier_reps:
-			df.loc[(df['GENOTYPE'] == genotype) & (df['REPLICATE'] == rep), 'STATUS'] += QC_dict['COV_MED']['status']
+			outlier_indx = set(df.index[(df['GENOTYPE'] == key[0]) & \
+							(df['REPLICATE'] == rep)])
+			for ci in range(len(conditions)):
+				outlier_indx = outlier_indx & \
+							set(df.index[df[conditions[ci]] == key[ci+1]])
+			print outlier_indx
+			df.loc[list(outlier_indx), 'STATUS'] += QC_dict['COV_MED']['status']
 	return df
 
 
@@ -245,14 +263,14 @@ def update_auto_audit(df, threshold):
 	return df
 
 
-def save_dataframe(filepath, df, df_cols):
+def save_dataframe(filepath, df, df_cols, conditions, fp_ext=0):
 	"""
 	Save dataframe of quality assessment
 	"""
-	df = df.sort_values(['GENOTYPE','REPLICATE'])
+	df = df.sort_values(['GENOTYPE'] + conditions + ['REPLICATE'])
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
-	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3))
+	df.to_excel(filepath, columns=df_cols, index=False, freeze_panes=(1,3+fp_ext))
 
 
 def main(argv):
@@ -269,6 +287,9 @@ def main(argv):
 	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
 	global QC_dict
 	QC_dict = load_config(parsed.qc_configure)
+	## get conditions
+	conditions = None if parsed.condition_descriptors is None else \
+				[c.strip() for c in parsed.condition_descriptors.split(',')]
 
 	## do QA
 	print '... Preparing QA dataframe'
@@ -278,14 +299,14 @@ def main(argv):
 	else:
 		resistance_cassettes = [rc.strip() for rc in parsed.resistance_cassettes.split(',')]
 		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
-	df_columns = ['GENOTYPE','REPLICATE','SAMPLE', \
-					'TOTAL','COMPLEXITY','MUT_FOW'] \
+	df_columns = ['GENOTYPE','REPLICATE','SAMPLE'] \
+				+ conditions \
+				+ ['TOTAL','COMPLEXITY','MUT_FOW'] \
 				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
-	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num)
-	# expr, sample_dict = combined_expression_data(df, parsed.gene_list)
-	expr, sample_dict = load_expression_data(df, parsed.group_num, parsed.gene_list)
+	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num, conditions)
+	expr, sample_dict = load_expression_data(df, parsed.group_num, parsed.gene_list, conditions)
 	print '... Assessing reads mapping'
 	df = assess_mapping_quality(df)
 	print '... Assessing efficiency of gene mutation'
@@ -293,9 +314,10 @@ def main(argv):
 	print '... Assessing insertion of resistance cassette'
 	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
 	print '... Assessing concordance among replicates'
-	df = assess_replicate_concordance(df, expr, sample_dict)
+	df = assess_replicate_concordance(df, expr, sample_dict, conditions)
+	print '... Auto auditing'
 	df = update_auto_audit(df, parsed.auto_audit_threshold)
-	save_dataframe(parsed.output_filepath, df, df_columns)
+	save_dataframe(parsed.output_filepath, df, df_columns, conditions, len(conditions))
 	
 
 if __name__ == '__main__':
