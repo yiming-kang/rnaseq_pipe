@@ -181,7 +181,7 @@ def main(argv):
 	## define columns in sample summary
 	df_columns = ['GENOTYPE', 'SAMPLE', 'INDUCTION', 'LIBRARY', \
 					'REPLICATE', 'INDEX', 'RUN_NUMBER', 'FILE', 'GROUP'] \
-				+ conditions + ['ST_PIPE', 'ST_TOTAL', 'ST_COMPLEXITY', \
+				+ conditions + ['ST_PIPE', 'ST_TOTAL_READS', 'ST_COMPLEXITY', \
 					'ST_MUT_FOW', 'ST_RC_FOM', 'ST_COV_MED', 'AUTO_AUDIT', \
 					'MANUAL_AUDIT', 'USER', 'NOTE']
 	## define pre-alignment criteria to use
