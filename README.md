@@ -6,40 +6,59 @@ This RNA-seq analysis pipeline is designed for processing data generated from ge
 
 ### REQUIREMENT
 
-This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules/packages are required. Tested on the following versions:
-	
-* SLURM v17.02.6
-* novoalign v3.07.00
-* stringtie v1.3.3b  
-* samtools v1.6
-* igv v2.3.60
-* java
+This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules/packages are required and tested on the respective versions:
+
+	```	
+	SLURM v17.02.6
+	novoalign v3.07.00
+	stringtie v1.3.3b  
+	samtools v1.6
+	igv v2.3.60
+	java
+	```
 
 Python packages:
 
-* pandas v0.20.3
-* pysam v0.11.0
+	```
+	pandas v0.20.3
+	pysam v0.11.0
+	openpyxl v2.5.0
+	xlrd v1.1.0
+	```
 
 R packages:
 
-* NOISeq v2.14.1
+	```
+	DESeq2 v1.10.1
+	EdgeR v3.12.1
+	NOISeq v2.14.1
+	```
 
 ### SETUP
 	
-1. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
+1. Obtain genome (`.fasta`) and gene annotation (`.gtf` or `.gff`) for your strain of interest. For example, `H99.zip` contains the followings for C. neoformans (strain H99):
+
+	```
+	├── crNeoH99.fasta
+	├── crNeoH99.gtf
+	├── gids
+	└── H99_GENOME_SUMMARY
+	```
+
+2. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
 	
 	```
 	ml novoalign/3.07.00
 	novoindex <genome>.nix <genome>.fasta 
 	```
 
-2. Make direcotries. 
+3. Make empty direcotries. 
 
 	```
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},diffexpr/{deseq2,edger},job_scripts/{lookup_files},log,reports,sequence}
 	```
 
-3. Install Python packages, if not available.
+4. Install Python packages, if not available.
 	1. Download and install [pip](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
 	2. Install `pandas`, `pysam`, `pyyaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
 
@@ -47,7 +66,7 @@ R packages:
 	pip install --user <package_name>
 	```
 
-4. Install R packages in R interactive session, if not available.
+5. Install R packages in R interactive session, if not available.
 
 	```R
 	> source("https://bioconductor.org/biocLite.R")
@@ -57,7 +76,7 @@ R packages:
 	```
 
 
-5. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
+6. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
 	1. On your local computer, make a directory `$HOME/igv/<genome>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
 	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
 	3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
