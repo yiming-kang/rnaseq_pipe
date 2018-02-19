@@ -191,6 +191,8 @@ def main(argv):
 	summary_df = build_sample_summary(parsed.samples, metadata, df_columns,
 									qc_columns, parsed.group_num, conditions)
 	save_dataframe(parsed.samples, summary_df, df_cols=df_columns)
+	## TODO: to be removed 
+	# summary_df = pd.read_excel(parsed.samples)
 
 	## build design table
 	if parsed.design_table is not None:

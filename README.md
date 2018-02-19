@@ -36,12 +36,12 @@ R packages:
 2. Make direcotries. 
 
 	```
-	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},job_scripts,log,reports,sequence}
+	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},job_scripts/{lookup_files},log,reports,sequence}
 	```
 
 3. **[Optional]** Install Python packages, if not available.
 	1. Download and install [pip](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
-	2. Install `pandas`, `pysam` and `yaml` as user (the former two are available on HTCF).
+	2. Install `pandas`, `pysam`, `yaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
 
 	```
 	pip install --user <package_name>
