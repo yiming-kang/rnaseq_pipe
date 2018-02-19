@@ -6,16 +6,23 @@ This RNA-seq analysis pipeline is designed for processing data generated from ge
 
 ### REQUIREMENT
 
-This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules are required. Tested on the respective versions. 
+This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The following tools/modules/packages are required. Tested on the following versions:
 	
 * SLURM v17.02.6
 * novoalign v3.07.00
 * stringtie v1.3.3b  
 * samtools v1.6
-* pandas v0.20.3
-* pysam v0.11.0
 * igv v2.3.60
 * java
+
+Python packages:
+
+* pandas v0.20.3
+* pysam v0.11.0
+
+R packages:
+
+* NOISeq v2.14.1
 
 ### SETUP
 	
@@ -32,8 +39,16 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},job_scripts,log,reports,sequence}
 	```
 
-3. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
+3. **[Optional]** Install Python packages, if not available.
+	1. Download and install [pip](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
+	2. Install `pandas`, `pysam` and `yaml` as user (the former two are available on HTCF).
 
+	```
+	pip install --user <package_name>
+	```
+
+
+4. **[Optional]** Generate and configure the IGV genome file of the species of interest for automated IGV snapshot. 
 	1. On your local computer, make a directory `$HOME/igv/<genome>`, and put in genome sequence (`.fasta`) and gene annotation (`.gtf/gff`).
 	2. Open IGV app, go to Genomes > Create .genome File, load the files as instructed, and save output at `$HOME/igv/genomes/`.
 	3. Copy your locally created genome file and `user-defined-genomes.txt` file at `$HOME/igv/genomes/` to the server directory `$HOME/igv/genomes/`. 
@@ -45,7 +60,7 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	DEFAULT_GENOME_KEY=<genome>
 	```
 
-4. **[Optional]** Install NOISeq package from Bioconductor.
+5. **[Optional]** Install NOISeq package from Bioconductor, if not available.
 
 	```
 	source("https://bioconductor.org/biocLite.R")
@@ -61,8 +76,9 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	3. Prepare samples that will be analyzed together in the same analysis group. This module sifts low-quality sample before alignment, update sample summary sheet, and generates a design table with default contrast group that will be used in DE analysis.
 
 	```
+	ml pandas/0.20.3
 	python tools/prepare_samples.py -g <group_#> -m metadata/<metadata>.xlsx \
-			-d reports/design_table.<group_#>.xlsx -w <wildtype> 
+			-d reports/design_table.group_<group_#>.xlsx -w <wildtype> 
 	```
 
 2. Reads alignment and transcriptomic expression quantification
@@ -88,18 +104,19 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 		The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	
 	```
-	ml pandas/0.20.3
 	python tools/assess_quality.py -g <group_#> -l <gene_list> -r <max_replicate_#> \
-			-w <wildtype> -c <marker_genes> -o reports/sample_quality.<group_#>.xlsx
+			-w <wildtype> -c <marker_genes> -o reports/sample_quality.group_<group_#>.xlsx
 	```
+
+	**[Important]** Proceed to the following steps ii and iii as needed, or jump to step iv.
 
 	2. **[Optional]** Assess the efficiency of gene perturbation. Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled `[<sample>]<gene_mutant>.png`. Two snapshots will be made for double mutant, and so forth.
 
 	```
 	ml pysam/0.11.0
-	python tools/build_igv_snapshot.py -q reports/sample_quality.<group_#>.xlsx \
+	python tools/build_igv_snapshot.py -q reports/sample_quality.group_<group_#>.xlsx \
 			-g <gene_annotation>.gtf -gm <genome> \
-			-o reports/inefficient_mutation.<group_#>/
+			-o reports/inefficient_mutation.group_<group_#>/
 	sbatch job_scripts/igv_snapshot.sbatch
 	```
 
@@ -108,7 +125,15 @@ This pipeline uses SLURM workload manager to streamline the RNAseq analysis. The
 	```
 	ml R/3.2.1
 	Rscript tools/make_saturation_curve.r -i <count_matrix>.csv \
-			-k 0 -o reports/saturation_curves.<group_#>/
+			-k 0 -o reports/saturation_curves.group_<group_#>/
+	```
+
+	4. Manually audit sample quality in `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT, put your name in USER and your reason of the rescue decision.
+
+	5. Update audit of sample summary.
+
+	```
+	python tools/update_audit.py -q reports/sample_quality.group_<group_#>.xlsx
 	```
 
 4. Differential expression  

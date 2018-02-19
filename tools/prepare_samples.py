@@ -84,6 +84,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions):
 		## add audit flag on pre-alignment QC
 		if sum([row[qc] < QC_dict[qc]['threshold'] for qc in qc_cols]) != 0:
 			df2.loc[i, 'ST_PIPE'] = 1
+			df2.loc[i, 'AUTO_AUDIT'] = 1
 		## valid uniqueness and existence of the fastq file
 		file = 'sequence/run_'+ str(row['RUN_NUMBER']) +'_samples/*'+ row['INDEX'] +'*'
 		files_found = glob.glob(file)
@@ -156,13 +157,13 @@ def build_design_table(summary_df, cmp_cols, wt=None):
 	return design_df
 
 
-def save_dataframe(filepath, df, df_cols=None, freeze_p=None):
+def save_dataframe(filepath, df, df_cols=None):
 	"""
 	Save dataframe of quality assessment.
 	"""
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
-	df.to_excel(filepath, index=False, columns=df_cols, freeze_panes=freeze_p)
+	df.to_excel(filepath, index=False, columns=df_cols)
 
 
 def main(argv):
@@ -195,7 +196,7 @@ def main(argv):
 	if parsed.design_table is not None:
 		design_df = build_design_table(summary_df[summary_df['GROUP']==\
 								parsed.group_num], conditions, parsed.wildtype)
-		save_dataframe(parsed.design_table, design_df, freeze_p=(1,len(conditions)+3))
+		save_dataframe(parsed.design_table, design_df)
 
 
 if __name__ == '__main__':
