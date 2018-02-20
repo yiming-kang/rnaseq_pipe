@@ -195,7 +195,7 @@ R packages:
 	* BA
 	* TAPESTATION
 	* SPIKIN_READS: Spik-in control reads
-	# SAMPLE_READS: Total reads
+	* SAMPLE_READS: Total reads
 
 2. #### Sample summary
 
@@ -243,8 +243,10 @@ R packages:
 	* GENOTYPE, REPLICATE, SAMPLE
 	* <EXPERIMENT_DESCRIPTORS>: Descriptor for your experimental design as input in Metadata file. 
 
-	Design table columns, i.e. subgrouping samples for DE anlaysis:
+	Design table columns, i.e. subgrouping samples for DE anlaysis. Each of those columns are named in the following fashion:
 
-	Each of those columns has this format `[DESCRIPTOR1:VALUE1-...-DESCRIPTORm:VALUEm]DESCRIPTORm:VALUEmi-VALUEmj`. More specifically, any values with the corresponding descriptors in `[]` are the controlled conditions, and `VALUEmi` vs `VALUEmj` are the sample subsets to be compared as described as `DESCRIPTORm`. For example, `[TREATMENT:37C-TIME_POINT:90m]GENOTYPE:gene1-gene2` standards for comparsing two sample subset with different genotypes `gene1` and `gene2`, while all other experiment conditions are controlled at growth temperature of 37C and acquiring sample 90 minutes after induction. To make your own design subgroup, create a column name as described above, and put 0s and 1s for the respective sample subsets to be compared. 
+	`[DESCRIPTOR1:VALUE1-...-DESCRIPTORm:VALUEm]DESCRIPTORm:VALUEmi-VALUEmj`
+
+	More specifically, any values with the corresponding descriptors in `[]` are the controlled conditions, and `VALUEmi` vs `VALUEmj` are the sample subsets to be compared as described as `DESCRIPTORm`. For example, `[TREATMENT:37C-TIME_POINT:90m]GENOTYPE:gene1-gene2` standards for comparsing two sample subset with different genotypes `gene1` and `gene2`, while all other experiment conditions are controlled at growth temperature of 37C and acquiring sample 90 minutes after induction. To make your own design subgroup, create a column name as described above, and put 0s and 1s for the respective sample subsets to be compared. 
 
 
