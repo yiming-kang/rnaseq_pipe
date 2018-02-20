@@ -116,13 +116,6 @@ R packages:
 
 	1. #### Assess the quality of each sample 
 
-		The QC metrics are the followings:
-		* TOTAL_READS: Total read count
-		* COMPLEXITY: Percentage of uniquely aligned reads
-		* MUT_FOW: Efficiency of gene perturbation
-		* MARKER_FOM: Efficiency of the replaced drug-marker gene
-		* COV_MED: Replicate concordance
-
 		The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	
 	```
@@ -134,7 +127,7 @@ R packages:
 
 	2. #### **[Optional]** Assess the efficiency of gene perturbation
 	
-	Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled `[<sample>]<gene_mutant>.png`. Two snapshots will be made for double mutant, and so forth.
+		Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled `[<sample>]<gene_mutant>.png`. Two snapshots will be made for double mutant, and so forth.
 
 	```
 	ml pysam/0.11.0
@@ -146,7 +139,7 @@ R packages:
 
 	3. #### **[Optional]** Make saturation plots for samples grouped by genotype
 	
-	Each output plot titled `[genotype].png` contains all replicates/samples belonging to the same genotype. `-k` is the stringency to detect features with > k counts.
+		Each output plot titled `[genotype].png` contains all replicates/samples belonging to the same genotype. `-k` is the stringency to detect features with > k counts.
 
 	```
 	ml R/3.2.1
@@ -156,7 +149,7 @@ R packages:
 
 	4. #### Manually audit sample quality
 	
-	Review the QA file `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT for the corresponding sample, put your name in USER and your reason of the rescue decision; otherwise, leave it blank.
+		Review the QA file `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT for the corresponding sample, put your name in USER and your reason of the rescue decision; otherwise, leave it blank.
 
 	5. #### Update audit of sample summary
 
@@ -179,8 +172,79 @@ R packages:
 
 ### FILES
 
-#### 1. Metadata files
+1. #### Metadata files
+	
+	Each metadata file contains experimental and sequencing information about each sample. 
 
-#### 2. Sample summary
+	Mandatory columns:
 
-#### 3. Sample quality
+	* GENOTYPE: Genotype of each sample. The pipeline takes gene name as the deletion strain, and takes gene name appended with `_over` as overexpression. If more than one gene is perturbed, use delimiter `.`, e.g. `gene1.gene2` represents deletion of both gene1 and gene2 
+	* REPLICATE: Replicate ID
+	* INDUCTION: Date of induction experiment
+	* LIBRARY: Date of library prep
+	* INDEX: Sequencing index that is unique to a sample in a batch run, e.g. `CTGGTGG`
+	* RUN_NUMBER: Run identifier number for associated batch
+
+	Descriptors for the experimental designs: <EXPERIMENT_DESCRIPTORS>. Those descriptors are flexible, for example:
+	
+	* TREATMENT: Sample treatment, e.g. growth condition, temperature 
+	* TIME_POINT: Time after induction to acquire the sample
+
+	QA metrics, but are optional:
+	
+	* BA
+	* TAPESTATION
+	* SPIKIN_READS: Spik-in control reads
+	# SAMPLE_READS: Total reads
+
+2. #### Sample summary
+
+	Sample summary sheet contains the essential metadata and QA metric after running the pipeline. 
+
+	Metadata columns:
+
+	* GENOTYPE, INDUCTION, LIBRARY, REPLICATE, INDEX, RUN_NUMBER, <EXPERIMENT_DESCRIPTORS>
+	* SAMPLE: Unique sample identifier in the entire sample repository
+	* FILE: Reads file 
+	* GROUP: Analysis group number
+
+	QA columns and sample audits:
+
+	* ST_<QA_METRIC>: Status of each QC metric. 1 indicates the sample DOES NOT flags a problem of the corresponding QA. 
+	* AUTO_AUDIT, MANUAL_AUDIT, USER, NOTES record audit (including human decision).
+
+
+3. #### Sample quality
+
+	Metada columns:
+
+	* GENOTYPE, REPLICATE, SAMPLE
+
+	QA columns:
+
+	* TOTAL_READS: Total read count
+	* COMPLEXITY: Percentage of uniquely aligned reads
+	* MUT_FOW: Efficiency of gene perturbation
+	* <MARKER_FOM>: Efficiency of the replaced drug-marker gene
+	* <COV_MED_REPIDs>: Replicate concordance of each combination of replicates, e.g. if you have replicates 1,2,3, there will be COV_MED_REP123, COV_MED_REP12, COV_MED_REP13, COV_MED_REP23. 
+	* STATUS: Status score to summarize QA metrics according to `qc_config.yaml`
+
+	Sample audits:
+
+	* AUTO_AUDIT: Auto-generated audit. 1 indicates that the sample DOES NOT pass QA (the tolerance level of rejecting a sample can be adjusted by setting `--auto_audit_threshold` of `assess_quality.py`).
+	* MANUAL_AUDIT: Manual audit. Review the QA columns and IGV snapshots for the samples with AUTO_AUDIT of 1. Set MANUAL_AUDIT of 0 if you decide to rescue the sample.
+	* USER: Put your name for the rescued sample
+	* NOTE: Put your reason of rescue
+
+4. #### Design table
+
+	Metadata columns:
+
+	* GENOTYPE, REPLICATE, SAMPLE
+	* <EXPERIMENT_DESCRIPTORS>: Descriptor for your experimental design as input in Metadata file. 
+
+	Design table columns, i.e. subgrouping samples for DE anlaysis:
+
+	Each of those columns has this format `[DESCRIPTOR1:VALUE1-...-DESCRIPTORm:VALUEm]DESCRIPTORm:VALUEmi-VALUEmj`. More specifically, any values with the corresponding descriptors in `[]` are the controlled conditions, and `VALUEmi` vs `VALUEmj` are the sample subsets to be compared as described as `DESCRIPTORm`. For example, `[TREATMENT:37C-TIME_POINT:90m]GENOTYPE:gene1-gene2` standards for comparsing two sample subset with different genotypes `gene1` and `gene2`, while all other experiment conditions are controlled at growth temperature of 37C and acquiring sample 90 minutes after induction. To make your own design subgroup, create a column name as described above, and put 0s and 1s for the respective sample subsets to be compared. 
+
+

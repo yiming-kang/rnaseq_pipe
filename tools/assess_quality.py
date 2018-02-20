@@ -41,7 +41,7 @@ def initialize_dataframe(samples, df_cols, group, conditions):
 	df2 = df2[(df2['GROUP'] == group) & (df2['ST_PIPE'] != '1')][['GENOTYPE','REPLICATE','SAMPLE'] + conditions]
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
-	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
+	df2 = pd.concat([df2, pd.Series([np.nan]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
 	return df.append(df2)
 
 
