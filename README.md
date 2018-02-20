@@ -245,8 +245,8 @@ R packages:
 
 	Design table columns, i.e. subgrouping samples for DE anlaysis. Each of those columns are named in the following fashion:
 
-	`[DESCRIPTOR1:VALUE1-...-DESCRIPTORm:VALUEm]DESCRIPTORm:VALUEmi-VALUEmj`
+	`[DESCRIPTOR_1:VALUE_1-...-DESCRIPTOR_m:VALUE_m]DESCRIPTOR_n:VALUE_n1-VALUE_n2`
 
-	More specifically, any values with the corresponding descriptors in `[]` are the controlled conditions, and `VALUEmi` vs `VALUEmj` are the sample subsets to be compared as described as `DESCRIPTORm`. For example, `[TREATMENT:37C-TIME_POINT:90m]GENOTYPE:gene1-gene2` standards for comparsing two sample subset with different genotypes `gene1` and `gene2`, while all other experiment conditions are controlled at growth temperature of 37C and acquiring sample 90 minutes after induction. To make your own design subgroup, create a column name as described above, and put 0s and 1s for the respective sample subsets to be compared. 
+	More specifically, any values with the corresponding descriptors in `[]` are the controlled conditions, and `VALUE_n1` vs `VALUE_n2` are the sample subsets to be compared as described as `DESCRIPTOR_n`. For example, `[TREATMENT:37C-TIME_POINT:90m]GENOTYPE:gene1-gene2` standards for comparsing two sample subset with different genotypes `gene1` and `gene2`, while all other experiment conditions are controlled at growth temperature of 37C and acquiring sample 90 minutes after induction. To make your own design subgroup, create a column name as described above, and put 0s and 1s for the respective sample subsets to be compared. 
 
 
