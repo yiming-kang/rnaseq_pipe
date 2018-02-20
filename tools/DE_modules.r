@@ -54,9 +54,12 @@ run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		condition <- c(rep('0',length(samples_0)),rep('1',length(samples_1)))
 		samples <- c(contrast[['0']], contrast[['1']])
 		coldata <- data.frame(condition, row.names=samples)
+		## prepare DESeq2 dataset
 		dds <- DESeqDataSetFromMatrix(countData=cnt_mtx[samples], 
 									colData=coldata, design=~condition)
-		## DEseq2 testing
+		## normalize with in contrast group
+		dds <- estimateSizeFactors(dds)
+		## DESeq2 testing
 		dds <- DESeq(dds)
 		res <- results(dds)
 		res <- res[order(res$padj),]
