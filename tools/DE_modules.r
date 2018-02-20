@@ -56,7 +56,7 @@ run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		coldata <- data.frame(condition, row.names=samples)
 		dds <- DESeqDataSetFromMatrix(countData=cnt_mtx[samples], 
 									colData=coldata, design=~condition)
-		## run DESeq2
+		## DEseq2 testing
 		dds <- DESeq(dds)
 		res <- results(dds)
 		res <- res[order(res$padj),]
@@ -74,27 +74,24 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir) {
 	samples_0 <- contrast[['0']]
 	samples_1 <- contrast[['1']]
 	if (length(samples_0) > 0 & length(samples_1) > 0) {
+		## get design table
 		condition <- c(rep('0',length(samples_0)),rep('1',length(samples_1)))
 		samples <- c(contrast[['0']], contrast[['1']])
 		dds <- DGEList(counts=cnt_mtx[samples], group=factor(condition))
 		design_mtx <- model.matrix(~0 + dds$samples$group)
 		colnames(design_mtx) <- levels(dds$samples$group)
-		## run EdgeR
+		## estimate lib size and norma factor
 		dds <- calcNormFactors(dds)
-		# dds <- estimateDisp(dds, design_mtx)
-		# dds <- estimateGLMCommonDisp(dds, design_mtx)
-		dds <- estimateGLMTrendedDisp(dds, design_mtx)
-		dds <- estimateGLMTagwiseDisp(dds, design_mtx)
+		## estimate dispersion
+		dds <- estimateGLMCommonDisp(dds, design_mtx)
+		dds <- estimateGLMTrendedDisp(dds, design_mtx, method='auto')
+		# dds <- estimateGLMTagwiseDisp(dds, design_mtx)
+		## GLM testing for DE
 		fit <- glmFit(dds, design_mtx)
 		lrt <- glmLRT(fit)
-		res <- topTags(lrt, n=dim(cnt_mtx)[1], adjust.method="BH", sort.by="PValue")
-		# dds <- calcNormFactors(dds)
-		# dds <- estimateCommonDisp(dds)
-		# dds <- estimateTagwiseDisp(dds)
-		# de <- exactTest(dds, pair=c("untreated", "treated"))
-		# res <- topTags(de, n=dim(cnt_matix)[1], adjust.method="BH", sort.by="PValue")
+		res <- topTags(lrt, n=dim(cnt_mtx)[1], adjust.method='BH', sort.by='PValue')
 		## write result
 		filepath <- paste0(output_dir, '/', header, '.txt')
-		write.table(res, file=filepath, quote=FALSE, sep='\t')
+		# write.table(res, file=filepath, quote=FALSE, sep='\t')
 	}	
 }
