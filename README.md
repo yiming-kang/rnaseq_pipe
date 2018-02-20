@@ -89,7 +89,7 @@ R packages:
 
 ### USAGE
 
-#### 1. Data preparation and pre-alignment QC
+1. #### Data preparation and pre-alignment QC
 	
 	1. Make a subdirectory `sequence/run_<#>_samples/` for the batch. Make soft link or copy the reads files to it. Both zipped `*.gz` or unzipped fastq reads files are acceptable.
 	2. **[Optional]** Update the thresholds for sample QC in configrue file `tools/qc_config.yaml`.
@@ -101,7 +101,7 @@ R packages:
 			-d reports/design_table.group_<group_#>.xlsx -w <wildtype> 
 	```
 
-#### 2. Reads alignment and transcriptomic expression quantification
+2. #### Reads alignment and transcriptomic expression quantification
 	
 	This module builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The user may opt to recive email notification when the run fails or completes.
 	
@@ -133,6 +133,7 @@ R packages:
 	**[Important]** Proceed to the following steps ii and iii as needed, or jump to step iv.
 
 	2. #### **[Optional]** Assess the efficiency of gene perturbation
+	
 	Make automated IGV snapshot of the problematic mutant and marker genes. The output snapshot is titled `[<sample>]<gene_mutant>.png`. Two snapshots will be made for double mutant, and so forth.
 
 	```
@@ -144,6 +145,7 @@ R packages:
 	```
 
 	3. #### **[Optional]** Make saturation plots for samples grouped by genotype
+	
 	Each output plot titled `[genotype].png` contains all replicates/samples belonging to the same genotype. `-k` is the stringency to detect features with > k counts.
 
 	```
@@ -152,16 +154,18 @@ R packages:
 			-k 0 -o reports/saturation_curves.group_<group_#>/
 	```
 
-	#### 4. Manually audit sample quality
+	4. #### Manually audit sample quality
+	
 	Review the QA file `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT for the corresponding sample, put your name in USER and your reason of the rescue decision; otherwise, leave it blank.
 
-	#### 5. Update audit of sample summary
+	5. #### Update audit of sample summary
 
 	```
 	python tools/update_audit.py -q reports/sample_quality.group_<group_#>.xlsx
 	```
 
-#### 4. Differential expression  
+4. #### Differential expression  
+	
 	This module run differential expression (DE) analysis of each sample contrast group in your design table. The available `<de_module>` are `deseq2` and `edger`, which are both count-based DE tools. The analysis will run on samples sifted by the combined AUTO_AUDIT and MANUAL_AUDIT in QA, if at least one sample is usable in both sub-groups, e.g. in comparison of single mutant to wildtype, we need both mutant and wildtype sub-groups have at least one sample.
 
 	```
