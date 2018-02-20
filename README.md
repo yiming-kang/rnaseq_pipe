@@ -30,7 +30,8 @@ R packages:
 
 ### SETUP
 	
-1. Obtain genome (`.fasta`) and gene annotation (`.gtf` or `.gff`) for your strain of interest. For example, `H99.zip` contains the followings for C. neoformans (strain H99):
+1. ##### Get ready genome refnereces
+	Obtain genome (`.fasta`) and gene annotation (`.gtf` or `.gff`) for your strain of interest. For example, `H99.zip` contains the followings for C. neoformans (strain H99):
 
 	```
 	├── crNeoH99.fasta
@@ -39,26 +40,28 @@ R packages:
 	└── H99_GENOME_SUMMARY
 	```
 
-2. Build index for the reference genome. Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check tool manual for details.
+2. ##### Build index for the reference genome
+	Make sure the version of aligner used for genome indexing is consistent with that for read alignment. Check aligner manual for details.
 	
 	```
 	ml novoalign/3.07.00
 	novoindex <genome>.nix <genome>.fasta 
 	```
 
-3. Make empty direcotries. 
+3. ##### Make empty direcotries
 
 	```
 	mkdir -p {alignment/{novoalign},expression/{stringtie,stringtie_count_matrix},diffexpr/{deseq2,edger},job_scripts/{lookup_files},log,reports,sequence}
 	```
 
-4. Install Python packages. If not availabel, install `pandas`, `pysam`, `pyyaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
+4. ##### Install Python packages
+	If not available, install `pandas`, `pysam`, `pyyaml`, `openpyxl` and `xlrd` as user (the former two are available on HTCF).
 
 	```
 	pip install --user <package_name>
 	```
 
-5. Install R packages in R interactive session, if not available.
+5. ##### Install R packages in R interactive session
 
 	```R
 	> source("https://bioconductor.org/biocLite.R")
