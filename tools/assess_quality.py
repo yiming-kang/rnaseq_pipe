@@ -13,15 +13,17 @@ def parse_args(argv):
 						help='Experiment group number.')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='Maximal number of replicate in experiment design.')
-	parser.add_argument('-w', '--wildtype', required=True,
-						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sample quality summary.')
 	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
 						help='Sample summary metadata file.')
 	parser.add_argument('-l', '--gene_list',
 						help='Use a custom gene list other than the list in gene annotation file.')
-	parser.add_argument('-c', '--resistance_cassettes',
+	parser.add_argument('-w', '--wildtype',
+						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
+	parser.add_argument('-c', '--count_matrix',
+						help='Normalized count matrix. If not given, the filepath will be guessed based on analysis group number.')
+	parser.add_argument('-m', '--resistance_cassettes',
 						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
 						help='Experimental conditions that describe the sample are used to identify subgroups within each genotype. Use delimiter "," if multiple descriptors are used.')
@@ -50,7 +52,7 @@ def combined_expression_data(df, gids, expr_tool='stringtie'):
 	Combine individual expression profiles into a single expression matrix.
 	Dimension = genes x samples.
 	"""
-	expr = pd.read_csv(gids, names=['gene'])
+	expr = pd.read_csv(gids, names=['gene_id'])
 	sample_dict = {}
 	for i,row in df.iterrows():
 		## get expression profile
@@ -67,19 +69,16 @@ def combined_expression_data(df, gids, expr_tool='stringtie'):
 	return expr, sample_dict
 
 
-def load_expression_data(df, group, gene_list, conditions, expr_tool='stringtie'):
+def load_expression_data(df, cnt_mtx, gene_list, conditions):
 	"""
 	Load count matrix, and make a sample dictionary.
 	"""
 	## load count matrix
-	filepath = 'expression/%s_count_matrix/normalized_count_matrix.group_%s.csv' % (expr_tool, group)
-	if not os.path.exists(filepath):
-		sys.exit('ERROR: %s does not exit' % filepath)
-	count = pd.read_csv(filepath)
+	count = pd.read_csv(cnt_mtx)
 	count = count.rename(columns={'Unnamed: 0':'gene'})
 	## find the intersected gene list
 	if gene_list is not None:
-		gids = pd.read_csv(gene_list)
+		gids = pd.read_csv(gene_list, names=['gene'])
 		if len(np.setdiff1d(gids, count['gene'])) > 0:
 			print 'WARNING: The custom gene list contains genes that are not in count matrix. Proceeding using the intersection.'
 		gids = np.intersect1d(gids, count['gene'])
@@ -134,6 +133,8 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 	overexpression by caluclating the expression of the perturbed gene
 	in mutant sample over mean expression of the same gene in wildtype.
 	"""
+	if wt is None:
+		return df
 	## get wildtype samples
 	wt_samples = [] 
 	for key in sample_dict.keys(): 
@@ -234,7 +235,6 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 				break 
 		max_rep_combo = cov_meds_dict[max(cov_meds_dict.keys())]['rep_combos'][0]
 		outlier_reps = set(max_rep_combo) - set(best_combo)
-		print key, outlier_reps
 		## update status
 		for rep in outlier_reps:
 			outlier_indx = set(df.index[(df['GENOTYPE'] == key[0]) & \
@@ -242,7 +242,6 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 			for ci in range(len(conditions)):
 				outlier_indx = outlier_indx & \
 							set(df.index[df[conditions[ci]] == key[ci+1]])
-			print outlier_indx
 			df.loc[list(outlier_indx), 'STATUS'] += QC_dict['COV_MED']['status']
 	return df
 
@@ -282,6 +281,12 @@ def main(argv):
 		sys.exit('ERROR: %s does not exist.' % parsed.samples)
 	if not os.path.exists(os.path.dirname(parsed.output_filepath)):
 		sys.exit('ERROR: %s does not exist.' % os.path.dirname(parsed.output_filepath))
+	if parsed.count_matrix is None:
+		count_matrix = 'expression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv' % parsed.group_num
+	else:
+		count_matrix = parsed.count_matrix
+	if not os.path.exists(count_matrix):
+		sys.exit('ERROR: %s does not exist.' % count_matrix)
 
 	## load QC config data
 	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);
@@ -306,7 +311,7 @@ def main(argv):
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num, conditions)
-	expr, sample_dict = load_expression_data(df, parsed.group_num, parsed.gene_list, conditions)
+	expr, sample_dict = load_expression_data(df, count_matrix, parsed.gene_list, conditions)
 	print '... Assessing reads mapping'
 	df = assess_mapping_quality(df)
 	print '... Assessing efficiency of gene mutation'

@@ -97,8 +97,9 @@ R packages:
 
 	```
 	ml pandas/0.20.3
-	python tools/prepare_samples.py -g <group_#> -m metadata/<metadata>.xlsx \
-			-d reports/design_table.group_<group_#>.xlsx -w <wildtype> 
+	python tools/prepare_samples.py -g <group_#> -s metadata/sample_summary.xlsx \ 
+			-m metadata/<metadata>.xlsx  -d reports/design_table.group_<group_#>.xlsx \ 
+			-w <wildtype>
 	```
 
 2. #### Reads alignment and transcriptomic expression quantification
@@ -106,9 +107,9 @@ R packages:
 	This module builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The user may opt to recive email notification when the run fails or completes.
 	
 	```
-	python tools/build_reads_processing.py -g <group_#> -l <gene_list> -i <genome>.nix \
-			-r <gene_annotation>.gtf -o job_scripts/<readsproc_job>.sbatch \
-			--mail_user <email_address>
+	python tools/build_reads_processing.py -s metadata/sample_summary.xlsx \
+			-g <group_#> -l <gene_list> -i <genome>.nix -r <gene_annotation>.gtf \
+			-o job_scripts/<readsproc_job>.sbatch --mail_user <email_address>
 	sbatch job_scripts/<readsproc_job>.sbatch
 	```
 
@@ -119,8 +120,8 @@ R packages:
 		The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	
 	```
-	python tools/assess_quality.py -g <group_#> -l <gene_list> -r <max_replicate_#> \
-			-w <wildtype> -c <marker_genes> -o reports/sample_quality.group_<group_#>.xlsx
+	python tools/assess_quality.py -s metadata/sample_summary.xlsx -g <group_#> -l <gene_list> \
+			-r <max_replicate_#> -w <wildtype> -m <marker_genes> -o reports/sample_quality.group_<group_#>.xlsx
 	```
 
 	**[Important]** Proceed to the following steps ii and iii as needed, or jump to step iv.
@@ -154,7 +155,8 @@ R packages:
 	5. #### Update audit of sample summary
 
 	```
-	python tools/update_audit.py -q reports/sample_quality.group_<group_#>.xlsx
+	python tools/update_audit.py -s metadata/sample_summary.xlsx \
+			-q reports/sample_quality.group_<group_#>.xlsx
 	```
 
 4. #### Differential expression  
