@@ -57,6 +57,7 @@ run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		## prepare DESeq2 dataset
 		dds <- DESeqDataSetFromMatrix(countData=cnt_mtx[samples], 
 									colData=coldata, design=~condition)
+		## TODO: filter low count genes (as in EdgeR)
 		## normalize with in contrast group
 		dds <- estimateSizeFactors(dds)
 		## DESeq2 testing
@@ -77,12 +78,16 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir) {
 	samples_0 <- contrast[['0']]
 	samples_1 <- contrast[['1']]
 	if (length(samples_0) > 0 & length(samples_1) > 0) {
-		## get design table
+		## prepare EdgeR dataset
 		condition <- c(rep('0',length(samples_0)),rep('1',length(samples_1)))
 		samples <- c(contrast[['0']], contrast[['1']])
 		dds <- DGEList(counts=cnt_mtx[samples], group=factor(condition))
 		design_mtx <- model.matrix(~0 + dds$samples$group)
 		colnames(design_mtx) <- levels(dds$samples$group)
+		## filter low count genes
+		## valid genes should have CPM > 1 in at least two samples per group
+		valid_genes <- rowSums(cpm(dds) > 1) >= 2
+		dds <- dds[valid_genes, keep.lib.sizes=FALSE]
 		## estimate lib size and norma factor
 		dds <- calcNormFactors(dds)
 		## estimate dispersion
