@@ -71,7 +71,7 @@ run_deseq2 <- function(cnt_mtx, contrast_dict, header, output_dir) {
 }
 
 
-run_edger <- function(cnt_mtx, contrast_dict, header, output_dir) {
+run_edger <- function(cnt_mtx, contrast_dict, header, output_dir, mode='classic') {
 	## Run EdgeR analysis of each contrast group
 	## prepare count and design matrices
 	contrast <- contrast_dict[[header]]
@@ -90,16 +90,22 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		# dds <- dds[valid_genes, keep.lib.sizes=FALSE]
 		## estimate lib size and norma factor
 		dds <- calcNormFactors(dds)
-		## estimate dispersion
-		dds <- estimateGLMCommonDisp(dds, design_mtx)
-		dds2 <- estimateGLMTrendedDisp(dds, design_mtx, method='auto')
-		dds2 <- estimateGLMTagwiseDisp(dds2, design_mtx)
-		## GLM testing for DE
-		lrt <- exactTest(dds)
-		# fit <- glmFit(dds2, design_mtx)
-		# lrt <- glmLRT(fit)
-		# fit <- glmQLFit(dds, design_mtx)
-		# lrt <- glmQLFTest(fit)
+		if (mode == 'classic') {
+			## estimate dispersion
+			dds <- estimateDisp(dds, design_mtx)
+			## exact test
+			lrt <- exactTest(dds)
+		} else if (mode == 'complex') {
+			## estimate GLM dispersion
+			dds <- estimateGLMCommonDisp(dds, design_mtx)
+			dds2 <- estimateGLMTrendedDisp(dds, design_mtx, method='auto')
+			dds2 <- estimateGLMTagwiseDisp(dds2, design_mtx)
+			## GLM testing for DE
+			fit <- glmFit(dds2, design_mtx)
+			lrt <- glmLRT(fit)
+			fit <- glmQLFit(dds, design_mtx)
+			lrt <- glmQLFTest(fit)
+		}
 		res <- topTags(lrt, n=dim(cnt_mtx)[1], adjust.method='BH', sort.by='PValue')
 		## write result
 		filepath <- paste0(output_dir, '/', header, '.txt')
