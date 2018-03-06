@@ -86,20 +86,23 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir) {
 		colnames(design_mtx) <- levels(dds$samples$group)
 		## filter low count genes
 		## valid genes should have CPM > 1 in at least two samples per group
-		valid_genes <- rowSums(cpm(dds) > 1) >= 2
-		dds <- dds[valid_genes, keep.lib.sizes=FALSE]
+		# valid_genes <- rowSums(cpm(dds) > 1) >= 2
+		# dds <- dds[valid_genes, keep.lib.sizes=FALSE]
 		## estimate lib size and norma factor
 		dds <- calcNormFactors(dds)
 		## estimate dispersion
 		dds <- estimateGLMCommonDisp(dds, design_mtx)
-		dds <- estimateGLMTrendedDisp(dds, design_mtx, method='auto')
-		# dds <- estimateGLMTagwiseDisp(dds, design_mtx)
+		dds2 <- estimateGLMTrendedDisp(dds, design_mtx, method='auto')
+		dds2 <- estimateGLMTagwiseDisp(dds2, design_mtx)
 		## GLM testing for DE
-		fit <- glmFit(dds, design_mtx)
-		lrt <- glmLRT(fit)
+		lrt <- exactTest(dds)
+		# fit <- glmFit(dds2, design_mtx)
+		# lrt <- glmLRT(fit)
+		# fit <- glmQLFit(dds, design_mtx)
+		# lrt <- glmQLFTest(fit)
 		res <- topTags(lrt, n=dim(cnt_mtx)[1], adjust.method='BH', sort.by='PValue')
 		## write result
 		filepath <- paste0(output_dir, '/', header, '.txt')
-		# write.table(res, file=filepath, quote=FALSE, sep='\t')
+		write.table(res, file=filepath, quote=FALSE, sep='\t')
 	}	
 }

@@ -36,7 +36,6 @@ if (parsed_opt$de_module == 'deseq2') {
 	}
 } else if (parsed_opt$de_module == 'edger') {
 	import_edger()
-	run_edger(count_matrix, contrast_dict, header, parsed_opt$output_dir)
 	for (header in names(contrast_dict)) {
 		cat('... Working on', header, '\n')
 		run_edger(count_matrix, contrast_dict, header, parsed_opt$output_dir)
