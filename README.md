@@ -97,31 +97,43 @@ R packages:
 
 	```
 	ml pandas/0.20.3
-	python tools/prepare_samples.py -g <group_#> -s metadata/sample_summary.xlsx \ 
-			-m metadata/<metadata>.xlsx  -d reports/design_table.group_<group_#>.xlsx \ 
+	python tools/prepare_samples.py -g <group#> -s metadata/sample_summary.xlsx \ 
+			-m metadata/<metadata>.xlsx  -d reports/design_table.group_<group#>.xlsx \ 
 			-w <wildtype>
 	```
 
-2. #### Reads alignment and transcriptomic expression quantification
+2. #### Reads alignment and gene expression quantification
 	
 	This module builds the SLURM job script from sample summary. Each job requires 8 CPUs and 24GB of memory. It allows 32 jobs at maximum running in parallel, depending on the available resources (e.g. CPUs and memories). The user may opt to recive email notification when the run fails or completes.
 	
 	```
 	python tools/build_reads_processing.py -s metadata/sample_summary.xlsx \
-			-g <group_#> -l <gene_list> -i <genome>.nix -r <gene_annotation>.gtf \
+			-g <group#> -l <gene_list> -i <genome>.nix -r <gene_annotation>.gtf \
 			-o job_scripts/<readsproc_job>.sbatch --mail_user <email_address>
 	sbatch job_scripts/<readsproc_job>.sbatch
 	```
 
-3. #### Quality assessment
+3. #### Normalize count matrix
+
+	This module builds count matrix of gene expression levels for your analysis group, and uses DESeq2 normalization method to estimate size factor of each sample, then normalizes the count matrix. 
+	
+	```
+	python tools/prepDE.py -i job_scripts/lookup_files/group_<group#>.expr.txt -l <read_length> \
+		-g expression/stringtie_count_matrix/count_matrix.group_<group#>.csv
+	ml R/3.2.1
+	Rscript tools/normalize_counts.r -i expression/stringtie_count_matrix/count_matrix.group_<group#>.csv \
+		-o expression/stringtie_count_matrix/normalized_count_matrix.group_<group#>.csv
+	```
+
+4. #### Quality assessment
 
 	1. #### Assess the quality of each sample 
 
 		The status (in bit form) summarizes the overall quality of each sample. The encoding of the corresponding metric is stored in `tools/qc_config.yaml`. `<markger_genes>` should be tab delimited, if more than one marker is used.
 	
 	```
-	python tools/assess_quality.py -s metadata/sample_summary.xlsx -g <group_#> -l <gene_list> \
-			-r <max_replicate_#> -w <wildtype> -m <marker_genes> -o reports/sample_quality.group_<group_#>.xlsx
+	python tools/assess_quality.py -s metadata/sample_summary.xlsx -g <group#> -l <gene_list> \
+			-r <max_replicate_#> -w <wildtype> -m <marker_genes> -o reports/sample_quality.group_<group#>.xlsx
 	```
 
 	**[Important]** Proceed to the following steps ii and iii as needed, or jump to step iv.
@@ -132,9 +144,9 @@ R packages:
 
 	```
 	ml pysam/0.11.0
-	python tools/build_igv_snapshot.py -q reports/sample_quality.group_<group_#>.xlsx \
+	python tools/build_igv_snapshot.py -q reports/sample_quality.group_<group#>.xlsx \
 			-g <gene_annotation>.gtf -gm <genome> \
-			-o reports/inefficient_mutation.group_<group_#>/
+			-o reports/inefficient_mutation.group_<group#>/
 	sbatch job_scripts/igv_snapshot.sbatch
 	```
 
@@ -145,31 +157,31 @@ R packages:
 	```
 	ml R/3.2.1
 	Rscript tools/make_saturation_curve.r -i <count_matrix>.csv \
-			-k 0 -o reports/saturation_curves.group_<group_#>/
+			-k 0 -o reports/saturation_curves.group_<group#>/
 	```
 
 	4. #### Manually audit sample quality
 	
-		Review the QA file `reports/sample_quality.group_<group_#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT for the corresponding sample, put your name in USER and your reason of the rescue decision; otherwise, leave it blank.
+		Review the QA file `reports/sample_quality.group_<group#>.xlsx`. If you decide to rescue the sample, record 0 in column MANUAL_AUDIT for the corresponding sample, put your name in USER and your reason of the rescue decision; otherwise, leave it blank.
 
 	5. #### Update audit of sample summary
 
 	```
 	python tools/update_audit.py -s metadata/sample_summary.xlsx \
-			-q reports/sample_quality.group_<group_#>.xlsx
+			-q reports/sample_quality.group_<group#>.xlsx
 	```
 
-4. #### Differential expression  
+5. #### Differential expression  
 	
 	This module run differential expression (DE) analysis of each sample contrast group in your design table. The available `<de_module>` are `deseq2` and `edger`, which are both count-based DE tools. The analysis will run on samples sifted by the combined AUTO_AUDIT and MANUAL_AUDIT in QA, if at least one sample is usable in both sub-groups, e.g. in comparison of single mutant to wildtype, we need both mutant and wildtype sub-groups have at least one sample.
 
 	```
 	ml R/3.2.1
 	Rscript tools/run_DE.r -m <de_module> \ 
-		-d reports/design_table.group_<group_#>.xlsx \
-		-q reports/sample_quality.group_<group_#>.xlsx \
-		-c expression/stringtie_count_matrix/count_matrix.group_<group_#>.csv \
-		-o diffexpr/<de_module>/group_<group_#>/
+		-d reports/design_table.group_<group#>.xlsx \
+		-q reports/sample_quality.group_<group#>.xlsx \
+		-c expression/stringtie_count_matrix/count_matrix.group_<group#>.csv \
+		-o diffexpr/<de_module>/group_<group#>/
 	```
 
 ### FILES

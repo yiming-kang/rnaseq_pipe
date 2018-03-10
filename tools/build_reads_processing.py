@@ -100,7 +100,7 @@ def prepare_lookup_file(samples, group):
 		lookup_readsproc += '%s\t%s\n' % (sample, row['FILE'])
 		lookup_expr += '%s\t%s\n' % (sample, expr_file)
 	## create laste line 
-	lookup_readsproc += 'expression/stringtie_count_matrix/count_matrix.group_%s.csv\texpression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv\n' % (group, group)
+	# lookup_readsproc += 'expression/stringtie_count_matrix/count_matrix.group_%s.csv\texpression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv\n' % (group, group)
 	## write file
 	lookup_filepath_prefix = 'job_scripts/lookup_files/group_'+ group
 	lookup_readsproc_filepath = lookup_filepath_prefix +'.readsproc.txt'
@@ -139,7 +139,7 @@ def main(argv):
 	print '... Building scripts for gene expression quantification'
 	jobs += build_expression_quantification(parsed.reference_gtf, parsed.gene_list)
 	print '... Building scripts for count normalization'
-	jobs += build_count_normalization(parsed.group_num, parsed.read_length)
+	# jobs += build_count_normalization(parsed.group_num, parsed.read_length)
 	write_file(jobs, parsed.output_filepath)
 	
 

@@ -36,10 +36,7 @@ def build_sample_summary(samples, metadata, df_cols, qc_cols, group, conditions)
 		if not os.path.exists(md):
 			sys.exit('ERROR: %s does not exist.' % md)
 		print '... Adding samples from %s' % md
-		df = populate_sample_summary(df, md, df_cols, qc_cols, conditions)
-	## force group number if multiple metadata are given
-	if group is not None:
-		df['GROUP'] = group
+		df = populate_sample_summary(df, md, df_cols, qc_cols, conditions, group)
 	## sort dataframe
 	df = df.sort_values(['SAMPLE'])
 	return df
@@ -57,7 +54,7 @@ def initialize_sample_summary(samples, df_cols):
 	return df
 
 
-def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions):
+def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=None):
 	"""
 	Add samples to dataframe from a metadata sheet.
 	Find the corresponding fastq file.
@@ -94,6 +91,9 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions):
 			sys.exit('ERROR: Mutilple files exist with the same index %s and run number %s.' % (row['INDEX'], row['RUN_NUMBER']))
 		else:
 			df2.loc[i, 'FILE'] = files_found[0]
+	## force group number if multiple metadata are given
+	if group is not None:
+		df2['GROUP'] = group
 	df = df.append(df2, ignore_index=True)[df_cols]
 	return df
 
