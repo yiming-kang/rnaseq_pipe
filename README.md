@@ -145,7 +145,7 @@ R packages:
 	```
 	ml pysam/0.11.0
 	python tools/build_igv_snapshot.py -q reports/sample_quality.group_<group#>.xlsx \
-			-g <gene_annotation>.gtf -gm <genome> \
+			-g <gene_annotation>.gtf -gm <genome> -w <wildtype> \
 			-o reports/inefficient_mutation.group_<group#>/
 	sbatch job_scripts/igv_snapshot.sbatch
 	```

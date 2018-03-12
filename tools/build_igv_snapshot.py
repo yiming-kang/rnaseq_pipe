@@ -16,6 +16,8 @@ def parse_args(argv):
 						help='Gene annotation file in GTF/GFF.')
 	parser.add_argument('-gm', '--igv_genome', required=True,
 						help='Genome created in IGV.')
+	parser.add_argument('-w', '--wildtype', required=True,
+						help='Wildtype name.')
 	parser.add_argument('-o', '--output_dir', required=True,
 						help='Directory for inefficient mutant samples.')
 	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
@@ -27,11 +29,13 @@ def parse_args(argv):
 	return parser.parse_args(argv[1:])
 
 
-def find_inefficient_mutation(df):
+def find_inefficient_mutation(df, wt):
 	"""
 	Find the samples and genes that are incompletely perturbed
 	"""
 	ineffmut_dict = {}
+	ineffmuts = set()
+	## add inefficient mutants to mutant samples
 	for i,row in df.iterrows():
 		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
 		mutants = row['GENOTYPE'].split('.')
@@ -46,9 +50,16 @@ def find_inefficient_mutation(df):
 					if mutants[j].endswith('over'): 
 						if mutfows[j] < QC_dict['MUT_FOW']['OVEREXPRESSION']['threshold']:
 							ineffmut_dict[sample]['gene'].append(mutants[j])
+							ineffmuts.add(mutants[j])
 					else:
 						if mutfows[j] > QC_dict['MUT_FOW']['DELETION']['threshold']:
 							ineffmut_dict[sample]['gene'].append(mutants[j])
+							ineffmuts.add(mutants[j])
+	## add inefficient mutants to wildtype samples
+	for i,row in df.iterrows():
+		if row['GENOTYPE'] == wt:
+			sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
+			ineffmut_dict[sample] = {'gene':list(ineffmuts), 'bam':None, 'bed':None}
 	return ineffmut_dict
 
 
@@ -117,7 +128,7 @@ def main(argv):
 
 	print '... Parsing QA file'
 	df = pd.read_excel(parsed.sample_quality, dtype=np.str)
-	ineffmut_dict = find_inefficient_mutation(df)
+	ineffmut_dict = find_inefficient_mutation(df, parsed.wildtype)
 	print '... Checking bam indexing'
 	ineffmut_dict = index_bams(ineffmut_dict)
 	print '... Creating IGV snapshot scripts'

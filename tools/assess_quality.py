@@ -150,6 +150,9 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 		## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
 		mut_fow_list = []
 		for mut_gene in row['GENOTYPE'].split('.'):
+			if mut_gene not in expr['gene'].tolist():
+				print 'skipping genotype:', mut_gene
+				continue
 			mut_fow = float(expr[expr['gene'] == mut_gene][sample]) / \
 					float(wt_expr[wt_expr['gene'] == mut_gene]['mean_fpkm'])
 			if mut_gene.endswith('_over'):
