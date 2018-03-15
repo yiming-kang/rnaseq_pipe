@@ -83,11 +83,13 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir, mode='classic'
 		samples <- c(contrast[['0']], contrast[['1']])
 		dds <- DGEList(counts=cnt_mtx[samples], group=factor(condition))
 		design_mtx <- model.matrix(~0 + dds$samples$group)
+		# design_mtx <- model.matrix(~dds$samples$group)
 		colnames(design_mtx) <- levels(dds$samples$group)
 		## filter low count genes
 		## valid genes should have CPM > 1 in at least two samples per group
 		# valid_genes <- rowSums(cpm(dds) > 1) >= 2
-		# dds <- dds[valid_genes, keep.lib.sizes=FALSE]
+		valid_genes <- rowSums(cpm(dds) > 2) >= length(samples)
+		dds <- dds[valid_genes, keep.lib.sizes=FALSE]
 		## estimate lib size and norma factor
 		dds <- calcNormFactors(dds)
 		if (mode == 'classic') {
@@ -103,8 +105,8 @@ run_edger <- function(cnt_mtx, contrast_dict, header, output_dir, mode='classic'
 			## GLM testing for DE
 			fit <- glmFit(dds2, design_mtx)
 			lrt <- glmLRT(fit)
-			fit <- glmQLFit(dds, design_mtx)
-			lrt <- glmQLFTest(fit)
+			# fit <- glmQLFit(dds, design_mtx)
+			# lrt <- glmQLFTest(fit)
 		}
 		res <- topTags(lrt, n=dim(cnt_mtx)[1], adjust.method='BH', sort.by='PValue')
 		## write result

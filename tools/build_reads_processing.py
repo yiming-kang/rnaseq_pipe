@@ -34,7 +34,7 @@ def build_header(samples_filepath, group, email=None):
 	## parse sample sheet
 	samples = pd.read_excel(samples_filepath, dtype=np.str)
 	samples_valid = samples[(samples['GROUP'] == group) & (samples['ST_PIPE'] != '1')]
-	n_lines = samples_valid.shape[0]+1
+	n_lines = samples_valid.shape[0]
 	## write a lookup file
 	lookup_filepath = prepare_lookup_file(samples_valid, group)
 	## write job script
@@ -52,13 +52,15 @@ def build_alignment(genome_index):
 	"""
 	Build job scripts for aligning reads to ref genome using Novoalign
 	"""
-	job = 'if [ ! -f alignment/novoalign/${data1}/aligned_reads_sorted.bam ]; then\n' \
+	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
+	job += 'if [ ! -f alignment/novoalign/${data1}/aligned_reads_sorted.bam ]; then\n' \
 		+ '\trm -rf alignment/novoalign/${data1} || :\n' \
 		+ '\tmkdir -p alignment/novoalign/${data1}\n' 
 	job += '\tnovoalign -c ${SLURM_CPUS_PER_TASK} -o SAM -d %s -f ${data2} 2>alignment/novoalign/${data1}/novoalign.log | samtools view -bS > alignment/novoalign/${data1}/aligned_reads.bam\n' % genome_index
 	job += '\tnovosort --threads ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads.bam >  alignment/novoalign/${data1}/aligned_reads_sorted.bam 2> alignment/novoalign/${data1}/novosort.log\n' \
 		+ '\trm alignment/novoalign/${data1}/aligned_reads.bam\n' \
-		+ 'fi\n\n'
+		+ 'fi\n'
+	job += 'fi\n\n'
 	return job
 
 
@@ -66,11 +68,13 @@ def build_expression_quantification(reference_gtf, gene_list):
 	"""
 	Build job scripts for quantifying gene expression levels using StringTie
 	"""
-	job = 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
+	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
+	job += 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
 		+ '\trm -rf expression/stringtie/${data1} || :\n' \
 		+ '\tmkdir -p expression/stringtie/${data1}\n' 
 	job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${data1}/stringtie_out.gtf -A expression/stringtie/${data1}/gene_abundances.tab\n' % reference_gtf
 	# job += '\tpython tools/stringtie2fpkm.py expression/stringtie/${data1}/gene_abundances.tab %s > expression/stringtie_fpkm/${data1}.expr\n' % gene_list
+	job += 'fi\n'
 	job += 'fi\n\n'
 	return job
 
