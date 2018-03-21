@@ -133,7 +133,8 @@ R packages:
 	
 	```
 	python tools/assess_quality.py -s metadata/sample_summary.xlsx -g <group#> -l <gene_list> \
-			-r <max_replicate_#> -w <wildtype> -m <marker_genes> -o reports/sample_quality.group_<group#>.xlsx
+			-r <max_replicate_#> -w <wildtype> -m <marker_genes> \
+			-o reports/sample_quality.group_<group#>.xlsx
 	```
 
 	**[Important]** Proceed to the following steps ii and iii as needed, or jump to step iv.
@@ -167,8 +168,8 @@ R packages:
 	5. #### Update audit of sample summary
 
 	```
-	python tools/update_audit.py -s metadata/sample_summary.xlsx \
-			-q reports/sample_quality.group_<group#>.xlsx
+	python tools/update_audit.py -g <group#> -q reports/sample_quality.group_<group#>.xlsx\
+		-s metadata/sample_summary.xlsx 
 	```
 
 5. #### Differential expression  

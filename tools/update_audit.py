@@ -8,6 +8,8 @@ from utils import *
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-g', '--group_num', required=True, 
+						help='Experiment group number.')
 	parser.add_argument('-q', '--sample_quality', required=True,
 						help='Sample quality assessment file.')
 	parser.add_argument('-s', '--sample_summary', 
@@ -18,23 +20,31 @@ def parse_args(argv):
 	return parser.parse_args(argv[1:])
 
 
-def update_sample_summary(qa, samples):
+def update_sample_summary(qa, samples, group):
 	"""
 	Decode status bit and update audit status afte manual audit of sample quality
 	"""
+	mask = (samples['ST_PIPE'] == 1) & (samples['GROUP'] == int(group))
+	samples.loc[mask, 'AUTO_AUDIT'] = 1
+	samples.loc[mask, 'MANUAL_AUDIT'] = 1
 	for i,row in qa.iterrows():
 		sample_id = row['SAMPLE']
+		mask = samples['SAMPLE'] == sample_id
 		## decompose status and update QA metric status
 		decomp = decompose_status2bit(row['STATUS'])
 		if decomp is not None:
 			metrics = [QC_dict_rev[2**bit] for bit in decomp]
 			for m in metrics:
 				m_col = '_'.join(['ST', m])
-				samples.loc[samples['SAMPLE'] == sample_id, m_col] = 1
+				samples.loc[mask, m_col] = 1
 		## update audit
 		audit_cols = ['AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
 		for col in audit_cols:
-			samples.loc[samples['SAMPLE'] == sample_id, col] = row[col]
+			samples.loc[mask, col] = row[col]
+			if col == 'AUTO_AUDIT' and np.isnan(samples.loc[mask, col].values):
+				samples.loc[mask, col] = 0
+			elif col == 'MANUAL_AUDIT' and np.isnan(samples.loc[mask, col].values):
+				samples.loc[mask, col] = samples.loc[mask, 'AUTO_AUDIT']
 	return samples
 
 
@@ -44,7 +54,7 @@ def save_dataframe(filepath, df, df_cols=None):
 	"""
 	if not filepath.endswith('.xlsx'):
 		filepath += '.xlsx'
-	df.to_excel(filepath, index=False, columns=df_cols)
+	df.to_excel(filepath, index=False, columns=df_cols, freeze_panes=(1,0))
 
 
 def reverse_QC_dict(QC_dict):
@@ -78,7 +88,7 @@ def main(argv):
 	qa = pd.read_excel(parsed.sample_quality)
 	samples = pd.read_excel(parsed.sample_summary)
 	df_columns = samples.columns.values
-	samples = update_sample_summary(qa, samples)
+	samples = update_sample_summary(qa, samples, parsed.group_num)
 	save_dataframe(parsed.sample_summary, samples, df_columns)
 
 
