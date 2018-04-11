@@ -151,10 +151,15 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 		mut_fow_list = []
 		for mut_gene in row['GENOTYPE'].split('.'):
 			if mut_gene not in expr['gene'].tolist():
-				print 'skipping genotype:', mut_gene
+				print '\t%s not in gene list. Skipping this genotype' % mut_gene
 				continue
-			mut_fow = float(expr[expr['gene'] == mut_gene][sample]) / \
-					float(wt_expr[wt_expr['gene'] == mut_gene]['mean_fpkm'])
+			wt_mean = float(wt_expr[wt_expr['gene'] == mut_gene]['mean_fpkm'])
+			if wt_mean == 0:
+				print '\t%s has 0 mean expression in WT samples' % mut_gene
+				mut_fow = np.inf
+			else:
+				mut_fow = float(expr[expr['gene'] == mut_gene][sample])/wt_mean
+					
 			if mut_gene.endswith('_over'):
 				## check overexpression
 				if (mut_fow < QC_dict['MUT_FOW']['OVEREXPRESSION']['threshold']) and (row['STATUS'] < QC_dict['MUT_FOW']['OVEREXPRESSION']['status']):
