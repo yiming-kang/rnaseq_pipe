@@ -8,6 +8,8 @@ import numpy as np
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-s', '--samples', required=True,
+						help='Sample summary metadata file.')
 	parser.add_argument('-i', '--genome_index', required=True,
 						help='Genome index file built for the aligner, e.g. *.nix for novoalign.')
 	parser.add_argument('-r', '--reference_gtf', required=True,
@@ -16,10 +18,8 @@ def parse_args(argv):
 						help='Experiment group number.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sbatch job script.')
-	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
-						help='Sample summary metadata file.')
-	parser.add_argument('--read_length', default=75, type=int,
-						help='Average read length.')
+	parser.add_argument('--stranded', action='store_true',
+						help='Use if it is strand-specific protocol.')
 	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
@@ -62,16 +62,18 @@ def build_alignment(genome_index):
 	return job
 
 
-def build_expression_quantification(reference_gtf, expr_tool='htseq'):
+def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded=False):
 	"""
 	Build job scripts for quantifying gene expression levels using StringTie or HTSeq
 	"""
+	is_stranded = 'yes' if stranded else 'no'
 	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
 	if expr_tool == 'htseq':
-		job += 'if [ ! -f expression/htseq/${data1}/cds_count.tsv ]; then\n' \
+		job += 'if [ ! -f expression/htseq/${data1}/cds_count.tsv && ! -f expression/htseq/${data1}/exon_count.tsv ]; then\n' \
 			+ '\trm -rf expression/htseq/${data1} || :\n' \
 			+ '\tmkdir -p expression/htseq/${data1}\n' 
-		job += '\thtseq-count -f bam -s no -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % reference_gtf
+		job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (is_stranded, reference_gtf)
+		job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (is_stranded, reference_gtf)
 	elif expr_tool == 'stringtie':		
 		job += 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
 			+ '\trm -rf expression/stringtie/${data1} || :\n' \
@@ -79,19 +81,6 @@ def build_expression_quantification(reference_gtf, expr_tool='htseq'):
 		job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${data1}/stringtie_out.gtf -A expression/stringtie/${data1}/gene_abundances.tab\n' % reference_gtf
 	job += 'fi\n'
 	job += 'fi\n\n'
-	return job
-
-
-def build_count_normalization(group, read_length):
-	"""
-	Build job scripts for normalizing count matrix
-	"""
-	lookup_file = 'job_scripts/lookup_files/group_%s.expr.txt' % group
-	job = 'if [ ! -f ${data2} ]; then\n'
-	job += '\twhile true; do\n'
-	job += '\t\tflag=1; while read s f; do if ! [[ -e $f ]]; then flag=0; fi; done < %s\n' % lookup_file
-	job += '\t\tif [[ $flag == 1 ]]; then python tools/prepDE.py -i %s -g ${data1} -l %d; Rscript tools/normalize_counts.r -i ${data1} -o ${data2}; break; fi\n' % (lookup_file, read_length)
-	job += '\t\tsleep 10\n\tdone\nfi\n'
 	return job
 
 
@@ -108,8 +97,6 @@ def prepare_lookup_file(samples, group, expr_tool='htseq'):
 		expr_file = '/'.join(['expression', expr_tool, sample, expr_tool_dict[expr_tool]])
 		lookup_readsproc += '%s\t%s\n' % (sample, row['FILE'])
 		lookup_expr += '%s\t%s\n' % (sample, expr_file)
-	## create laste line 
-	# lookup_readsproc += 'expression/stringtie_count_matrix/count_matrix.group_%s.csv\texpression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv\n' % (group, group)
 	## write file
 	lookup_filepath_prefix = 'job_scripts/lookup_files/group_'+ group
 	lookup_readsproc_filepath = lookup_filepath_prefix +'.readsproc.txt'
@@ -144,9 +131,7 @@ def main(argv):
 	print '... Building scripts for alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
-	jobs += build_expression_quantification(parsed.reference_gtf)
-	print '... Building scripts for count normalization'
-	# jobs += build_count_normalization(parsed.group_num, parsed.read_length)
+	jobs += build_expression_quantification(parsed.reference_gtf, stranded=parsed.stranded)
 	write_file(jobs, parsed.output_filepath)
 	
 

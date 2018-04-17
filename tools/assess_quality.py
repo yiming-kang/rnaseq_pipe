@@ -9,20 +9,20 @@ from utils import *
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-s', '--samples', required=True,
+						help='Sample summary metadata file.')
 	parser.add_argument('-g', '--group_num', required=True, 
 						help='Experiment group number.')
 	parser.add_argument('-r', '--max_replicates', required=True, type=int,
 						help='Maximal number of replicate in experiment design.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sample quality summary.')
-	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
-						help='Sample summary metadata file.')
+	parser.add_argument('-c', '--count_matrix', required=True,
+						help='Normalized count matrix. If not given, the filepath will be guessed based on analysis group number.')
 	parser.add_argument('-l', '--gene_list',
 						help='Use a custom gene list other than the list in gene annotation file.')
 	parser.add_argument('-w', '--wildtype',
 						help='Wildtype genotype, e.g. CNAG_00000 for crypto, BY4741 for yeast.')
-	parser.add_argument('-c', '--count_matrix',
-						help='Normalized count matrix. If not given, the filepath will be guessed based on analysis group number.')
 	parser.add_argument('-m', '--resistance_cassettes',
 						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
@@ -45,28 +45,6 @@ def initialize_dataframe(samples, df_cols, group, conditions):
 	df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='STATUS')], axis=1)
 	df2 = pd.concat([df2, pd.Series([np.nan]*df2.shape[0], name='AUTO_AUDIT')], axis=1)
 	return df.append(df2)
-
-
-def combined_expression_data(df, gids, expr_tool='stringtie'):
-	"""
-	Combine individual expression profiles into a single expression matrix.
-	Dimension = genes x samples.
-	"""
-	expr = pd.read_csv(gids, names=['gene_id'])
-	sample_dict = {}
-	for i,row in df.iterrows():
-		## get expression profile
-		genotype = row['GENOTYPE']
-		sample = genotype +'-'+ str(row['SAMPLE'])
-		filepath = '/'.join(['expression', expr_tool+'_fpkm', sample+'.expr'])
-		indiv_expr = pd.read_csv(filepath, names=[sample])
-		## concatenate horizontally
-		expr = pd.concat([expr, indiv_expr], axis=1)
-		## update sample dictionary
-		if genotype not in sample_dict.keys():
-			sample_dict[genotype] = {}
-		sample_dict[genotype][row['REPLICATE']] = sample
-	return expr, sample_dict
 
 
 def load_expression_data(df, cnt_mtx, gene_list, conditions):
@@ -185,11 +163,9 @@ def assess_resistance_cassettes(df, expr, resi_cass, wt):
 	rc_med_dict = {}
 	mut_samples = [s for s in expr.columns.values if (not s.startswith(wt)) and (s != 'gene')]
 	for rc in resi_cass:
-		## exclude wildtypes and samples that have other makers expressed 
-		rc0 = [x for x in resi_cass if x != rc]
-		rc0_fpkm = expr.loc[expr['gene'].isin(rc0), mut_samples]
+		## exclude wildtypes and markers expressed < 150 normalized counts
 		rc_fpkm = expr.loc[expr['gene'] == rc, mut_samples]
-		rc_fpkm = rc_fpkm.loc[:, (np.sum(rc_fpkm, axis=0) != 0) & (np.sum(rc0_fpkm, axis=0) == 0)]
+		rc_fpkm = rc_fpkm.loc[:, (np.sum(rc_fpkm, axis=0) > 150)]
 		rc_med_dict[rc] = rc_fom = np.nan if rc_fpkm.empty else np.median(rc_fpkm)
 	## calcualte FOM (fold change over mutant) of the resistance cassette
 	for i,row in df.iterrows():
@@ -287,14 +263,10 @@ def main(argv):
 		sys.exit('WARNING: %s already exists, rename the file to proceed.' % parsed.output_filepath)
 	if not os.path.exists(parsed.samples):
 		sys.exit('ERROR: %s does not exist.' % parsed.samples)
+	if not os.path.exists(parsed.count_matrix):
+		sys.exit('ERROR: %s does not exist.' % parsed.count_matrix)
 	if not os.path.exists(os.path.dirname(parsed.output_filepath)):
 		sys.exit('ERROR: %s does not exist.' % os.path.dirname(parsed.output_filepath))
-	if parsed.count_matrix is None:
-		count_matrix = 'expression/stringtie_count_matrix/normalized_count_matrix.group_%s.csv' % parsed.group_num
-	else:
-		count_matrix = parsed.count_matrix
-	if not os.path.exists(count_matrix):
-		sys.exit('ERROR: %s does not exist.' % count_matrix)
 
 	## load QC config data
 	## TODO: complexity.thresh <- mean(alignment.sum$COMPLEXITY[indx]) - 2*sd(alignment.sum$COMPLEXITY[indx]);

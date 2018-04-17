@@ -10,12 +10,12 @@ from utils import *
 
 def parse_args(argv):
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-s', '--samples', required=True,
+						help='Sample summary metadata file.')
 	parser.add_argument('-m', '--metadata', required=True,
 						help='Metadata file(s). Use delimiter "," if mutilple metadata files are used together for the same analysis group.')
 	parser.add_argument('-g', '--group_num', required=True, type=int,
 						help='Analysis group number. It is required if mutilple metadata files are used.')
-	parser.add_argument('-s', '--samples', default='metadata/sample_summary.xlsx',
-						help='Sample summary metadata file.')
 	parser.add_argument('-d', '--design_table',
 						help='Auto-gen design table for DE anlaysis.')
 	parser.add_argument('-w',  '--wildtype',
@@ -70,11 +70,15 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 		df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='FILE')], axis=1)
 	sample = 0 if df.shape[0] == 0 else max(df['SAMPLE'])
 	## update metadata
+	added_sample_indx = []
 	for i,row in df2.iterrows():
 		## check sample redundancy
 		sample_descriptor = [row[col] for col in sorted(check_cols)]
 		if sample_descriptor in exist_samples:
-			sys.exit('WARNING: found existing sample:\n%s\nCheck the redundancy issue.\n... Abort updating sample summary.' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)]))
+			# sys.exit('WARNING: found existing sample:\n%s\nCheck the redundancy issue.\n... Abort updating sample summary.' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)]))
+			print 'WARNING: found existing sample: %s' % ' '.join([':'.join([col, str(row[col])]) for col in sorted(check_cols)])
+			continue
+		added_sample_indx.append(i)
 		## add the unique sample id
 		sample += 1
 		df2.loc[i, 'SAMPLE'] = sample
@@ -91,6 +95,9 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 			sys.exit('ERROR: Mutilple files exist with the same index %s and run number %s.' % (row['INDEX'], row['RUN_NUMBER']))
 		else:
 			df2.loc[i, 'FILE'] = files_found[0]
+	## add only valid samples
+	df2 = df2.iloc[added_sample_indx]
+	print 'Total samples added: %d' % len(added_sample_indx)
 	## force group number if multiple metadata are given
 	if group is not None:
 		df2['GROUP'] = group
