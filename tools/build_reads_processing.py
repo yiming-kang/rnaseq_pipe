@@ -18,8 +18,8 @@ def parse_args(argv):
 						help='Experiment group number.')
 	parser.add_argument('-o', '--output_filepath', required=True,
 						help='Filepath of sbatch job script.')
-	parser.add_argument('--stranded', action='store_true',
-						help='Use if it is strand-specific protocol.')
+	parser.add_argument('--stranded', default='no',
+						help='Option for strand-specific protocol. Use yes/no/reverse.')
 	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
@@ -62,18 +62,17 @@ def build_alignment(genome_index):
 	return job
 
 
-def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded=False):
+def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded='no'):
 	"""
 	Build job scripts for quantifying gene expression levels using StringTie or HTSeq
 	"""
-	is_stranded = 'yes' if stranded else 'no'
 	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
 	if expr_tool == 'htseq':
-		job += 'if [ ! -f expression/htseq/${data1}/cds_count.tsv && ! -f expression/htseq/${data1}/exon_count.tsv ]; then\n' \
+		job += 'if [[ ! -f expression/htseq/${data1}/cds_count.tsv && ! -f expression/htseq/${data1}/exon_count.tsv ]]; then\n' \
 			+ '\trm -rf expression/htseq/${data1} || :\n' \
 			+ '\tmkdir -p expression/htseq/${data1}\n' 
-		job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (is_stranded, reference_gtf)
-		job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (is_stranded, reference_gtf)
+		job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
+		job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
 	elif expr_tool == 'stringtie':		
 		job += 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
 			+ '\trm -rf expression/stringtie/${data1} || :\n' \
@@ -128,7 +127,7 @@ def main(argv):
 	
 	print '... Building header'
 	jobs = build_header(parsed.samples, parsed.group_num, parsed.mail_user)
-	print '... Building scripts for alignment'
+	print '... Building scripts for reads alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
 	jobs += build_expression_quantification(parsed.reference_gtf, stranded=parsed.stranded)

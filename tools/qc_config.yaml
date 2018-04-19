@@ -11,7 +11,7 @@ SAMPLE_READS:
 TOTAL_READS:
   threshold: 5000000
   status: 1
-COMPLEXITY:
+ALIGN_PCT:
   threshold: 0.8
   status: 2
 MUT_FOW:

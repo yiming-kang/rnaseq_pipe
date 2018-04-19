@@ -93,14 +93,14 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 			if reg_uniq:
 				uniq_mapped_reads = int(reg_uniq.group(1))
 		reader.close()
-		complexity = uniq_mapped_reads/float(total_reads)
+		align_pct = uniq_mapped_reads/float(total_reads)
 		## set mapping quality
 		row['TOTAL'] = total_reads
-		row['COMPLEXITY'] = complexity
+		row['ALIGN_PCT'] = align_pct
 		if total_reads < QC_dict['TOTAL_READS']['threshold']:
 			row['STATUS'] += QC_dict['TOTAL_READS']['status']
-		if complexity < QC_dict['COMPLEXITY']['threshold']:
-			row['STATUS'] += QC_dict['COMPLEXITY']['status']
+		if align_pct < QC_dict['ALIGN_PCT']['threshold']:
+			row['STATUS'] += QC_dict['ALIGN_PCT']['status']
 		df.iloc[i] = row
 	return df
 
@@ -286,7 +286,7 @@ def main(argv):
 		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
 	df_columns = ['GENOTYPE','REPLICATE','SAMPLE'] \
 				+ conditions \
-				+ ['TOTAL','COMPLEXITY','MUT_FOW'] \
+				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']

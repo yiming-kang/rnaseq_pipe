@@ -12,7 +12,7 @@ def parse_args(argv):
 						help='Lookup table of sample and the corresponding HTSeq count.')
 	parser.add_argument('-o', '--output_count_file', required=True,
 						help='Output count matrix.')
-	parser.add_argument('-g', '--gene_list', required=True,
+	parser.add_argument('-l', '--gene_list', required=True,
 						help='Gene list. This gene list should be a subset or the same set of annotated genes in GTF/GFF.')
 	return parser.parse_args(argv[1:])
 
