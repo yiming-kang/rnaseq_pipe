@@ -66,13 +66,18 @@ def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded='
 	"""
 	Build job scripts for quantifying gene expression levels using StringTie or HTSeq
 	"""
+	is_gff = True if reference_gtf.split('.')[-1] == 'gff' else False
 	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
 	if expr_tool == 'htseq':
 		job += 'if [[ ! -f expression/htseq/${data1}/cds_count.tsv || ! -f expression/htseq/${data1}/exon_count.tsv ]]; then\n' \
 			+ '\trm -rf expression/htseq/${data1} || :\n' \
-			+ '\tmkdir -p expression/htseq/${data1}\n' 
-		job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
-		job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
+			+ '\tmkdir -p expression/htseq/${data1}\n'
+		if is_gff:
+			job += '\thtseq-count -f bam -i ID -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
+			job += '\thtseq-count -f bam -i ID -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
+		else: 
+			job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
+			job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
 	elif expr_tool == 'stringtie':		
 		job += 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
 			+ '\trm -rf expression/stringtie/${data1} || :\n' \
@@ -120,6 +125,9 @@ def main(argv):
 		sys.exit('ERROR: %s does not exist.' % parsed.samples)
 	if not os.path.exists(parsed.genome_index):
 		sys.exit('ERROR: %s does not exist.' % parsed.genome_index)
+	reference_gtf_suffix = parsed.reference_gtf.split('.')[-1]
+	if reference_gtf_suffix not in ['gtf', 'gff']:
+		sys.exit('ERROR: wrong gene annotation format.')
 	if not os.path.exists(parsed.reference_gtf):
 		sys.exit('ERROR: %s does not exist.' % parsed.reference_gtf)
 	if not os.path.exists(os.path.dirname(parsed.output_filepath)):
