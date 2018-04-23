@@ -291,7 +291,7 @@ def main(argv):
 				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
 				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num, conditions)
-	expr, sample_dict = load_expression_data(df, count_matrix, parsed.gene_list, conditions)
+	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print '... Assessing reads mapping'
 	df = assess_mapping_quality(df)
 	print '... Assessing efficiency of gene mutation'
