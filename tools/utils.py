@@ -92,7 +92,7 @@ def parse_gtf(filename):
 	return bed_dict
 
 
-def parse_gff3():
+def parse_gff3(filename):
 	"""
 	Convert gff3 into dictionary for filling bed fields
 	"""

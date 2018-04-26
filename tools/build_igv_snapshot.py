@@ -83,8 +83,8 @@ def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank):
 	## get gene dictionary with chromsom, gene coordinates, strand
 	if gene_annot.endswith('gtf'):
 		gene_annot_dict = parse_gtf(gene_annot)
-	elif gene_annot.endswith('gff'):
-		gene_annot_dict = parse_gff(gene_annot)
+	elif gene_annot.endswith('gff') or gene_annot.endswith('gff3'):
+		gene_annot_dict = parse_gff3(gene_annot)
 	else:
 		sys.exit("ERROR: The gene annotation format cannot be recognized.")
 	## create gene body region bed file
