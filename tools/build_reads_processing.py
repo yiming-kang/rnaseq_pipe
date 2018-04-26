@@ -20,12 +20,16 @@ def parse_args(argv):
 						help='Filepath of sbatch job script.')
 	parser.add_argument('--stranded', default='no',
 						help='Option for strand-specific protocol. Use yes/no/reverse.')
+	parser.add_argument('--cpus', default=8, type=int,
+						help='CPUs per task. Default is 8.')
+	parser.add_argument('--mem', default=24, type=int,
+						help='Memory usage in G. Default is 24.')
 	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
 
 
-def build_header(samples_filepath, group, email=None):
+def build_header(samples_filepath, group, cpus=8, mem=24, email=None):
 	"""
 	Build scripts for SBATCH configurations
 	"""
@@ -36,7 +40,7 @@ def build_header(samples_filepath, group, email=None):
 	## write a lookup file
 	lookup_filepath = prepare_lookup_file(samples_valid, group)
 	## write job script
-	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=24G\n'
+	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=%d\n#SBATCH --mem=%d\n' % (cpus, mem)
 	job	+= '#SBATCH --array=1-%d%%%d\n' % (n_lines, min(n_lines,32))
 	job += '#SBATCH -D ./\n#SBATCH -o log/readsproc_%A_%a.out\n#SBATCH -e log/readsproc_%A_%a.err\n#SBATCH -J readsproc\n'
 	if email is not None:
@@ -73,8 +77,9 @@ def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded='
 			+ '\trm -rf expression/htseq/${data1} || :\n' \
 			+ '\tmkdir -p expression/htseq/${data1}\n'
 		if is_gff:
-			job += '\thtseq-count -f bam -i ID -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
-			job += '\thtseq-count -f bam -i ID -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
+			# job += '\thtseq-count -f bam -i ID -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
+			# job += '\thtseq-count -f bam -i ID -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
+			job += '\thtseq-count -f bam -i ID -s %s -t gene alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/gene_count.tsv\n' % (stranded, reference_gtf)
 		else: 
 			job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
 			job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
@@ -136,11 +141,13 @@ def main(argv):
 		sys.exit('ERROR: wrong value for stranded argument.')
 	
 	print '... Building header'
-	jobs = build_header(parsed.samples, parsed.group_num, parsed.mail_user)
+	jobs = build_header(parsed.samples, parsed.group_num, 
+						cpt=parsed.cpus, mem=parsed.mem, email=parsed.mail_user)
 	print '... Building scripts for reads alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
-	jobs += build_expression_quantification(parsed.reference_gtf, stranded=parsed.stranded)
+	jobs += build_expression_quantification(parsed.reference_gtf, 
+						stranded=parsed.stranded)
 	write_file(jobs, parsed.output_filepath)
 	
 
