@@ -2,6 +2,7 @@
 
 '''
 Downloaded from: https://github.com/stevekm/IGV-snapshot-automator
+Modified by YK
 
 This script will load IGV in a virtual X window, load all supplied input files
 as tracks, and take snapshots at the coorindates listed in the BED formatted
@@ -18,9 +19,11 @@ load test_alignments.bam
 genome hg19
 maxPanelHeight 500
 goto chr1:713167-714758
-snapshot chr1_713167_714758_h500.png
+collapse
+snapshot chr1_713167_714758_h500.[png/svg]
 goto chr1:713500-714900
-snapshot chr1_713500_714900_h500.png
+collapse
+snapshot chr1_713500_714900_h500.[png/svg]
 exit
 '''
 
@@ -99,7 +102,7 @@ def make_IGV_chrom_loc(region):
     chrom, start, stop = region[0:3]
     return('{}:{}-{}'.format(chrom, start, stop))
 
-def make_snapshot_filename(region, height, suffix = None):
+def make_snapshot_filename(region, height, suffix = None, fig_format='png'):
     '''
     formats a filename for the IGV snapshot
     region is a tuple with at least 3 entries; if a 4th entry exists, use it as the filename
@@ -110,9 +113,9 @@ def make_snapshot_filename(region, height, suffix = None):
     elif len(region) == 3:
         chrom, start, stop = region
         if suffix == None:
-            return('{}_{}_{}_h{}.png'.format(chrom, start, stop, height))
+            return('{}_{}_{}_h{}.{}'.format(chrom, start, stop, height, fig_format))
         elif suffix != None:
-            return('{}_{}_{}_h{}{}.png'.format(chrom, start, stop, height, str(suffix)))
+            return('{}_{}_{}_h{}{}.{}'.format(chrom, start, stop, height, str(suffix), fig_format))
 
 def mkdir_p(path, return_path=False):
     '''
@@ -197,7 +200,7 @@ def start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genom
     append_string("maxPanelHeight " + image_height, IGV_batchscript_file)
 
 
-def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode):
+def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode, fig_format):
     '''
     Write the batchscript regions
     '''
@@ -212,18 +215,19 @@ def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, s
         # convert region into IGV script format
         IGV_loc = make_IGV_chrom_loc(region)
         # create filename for output snapshot image_height
-        snapshot_filename = make_snapshot_filename(region, image_height, suffix = suffix)
+        snapshot_filename = make_snapshot_filename(region, image_height, suffix = suffix, fig_format = fig_format)
         # write to the batchscript
         append_string("goto " + IGV_loc, IGV_batchscript_file)
+        append_string("collapse", IGV_batchscript_file)
         append_string("snapshot " + snapshot_filename, IGV_batchscript_file)
 
 
-def write_IGV_script(input_files, region_file, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, suffix = None, nf4_mode = False):
+def write_IGV_script(input_files, region_file, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, suffix = None, nf4_mode = False, fig_format='png'):
     '''
     write out a batchscrpt for IGV
     '''
     start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height)
-    write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode)
+    write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode, fig_format)
     append_string("exit", IGV_batchscript_file)
 
 def run_IGV_script(igv_script, igv_jar, memMB):
@@ -249,7 +253,7 @@ def run_IGV_script(igv_script, igv_jar, memMB):
 
 
 
-def main(input_files, region_file = 'regions.bed', genome = 'hg19', image_height = '500', outdir = 'IGV_Snapshots', igv_jar_bin = "bin/IGV_2.3.81/igv.jar", igv_mem = "4000", no_snap = False, suffix = None, nf4_mode = False, onlysnap = False):
+def main(input_files, region_file = 'regions.bed', genome = 'hg19', image_height = '500', outdir = 'IGV_Snapshots', igv_jar_bin = "bin/IGV_2.3.81/igv.jar", igv_mem = "4000", no_snap = False, suffix = None, nf4_mode = False, onlysnap = False, fig_format='png'):
     '''
     Main control function for the script
     '''
@@ -288,7 +292,7 @@ def main(input_files, region_file = 'regions.bed', genome = 'hg19', image_height
     mkdir_p(outdir)
 
     # write the IGV batch script
-    write_IGV_script(input_files = input_files, region_file = region_file, IGV_batchscript_file = batchscript_file, IGV_snapshot_dir = outdir, genome_version = genome, image_height = image_height, suffix = suffix, nf4_mode = nf4_mode)
+    write_IGV_script(input_files = input_files, region_file = region_file, IGV_batchscript_file = batchscript_file, IGV_snapshot_dir = outdir, genome_version = genome, image_height = image_height, suffix = suffix, nf4_mode = nf4_mode, fig_format=fig_format)
 
     # make sure the batch script file exists
     file_exists(batchscript_file, kill = True)
@@ -319,6 +323,7 @@ def run():
     parser.add_argument("-suffix", default = None, dest = 'suffix', help="Filename suffix to place before '.png' in the snapshots")
     parser.add_argument("-nf4", default = False, action='store_true', dest = 'nf4_mode', help="'Name field 4' mode; uses the value in the fourth field of the regions file as the filename for each region snapshot")
     parser.add_argument("-onlysnap", default = False, dest = 'onlysnap', help="Path to batchscript file to run in IGV. Performs no error checking or other input evaluation, only runs IGV on the batchscript and exits.")
+    parser.add_argument("-fig_format", default = 'png', dest = 'fig_format', help="Image format of snapshot. Choose from png (default) or svg.")
 
     args = parser.parse_args()
 
@@ -333,8 +338,9 @@ def run():
     suffix = args.suffix
     nf4_mode = args.nf4_mode
     onlysnap = args.onlysnap
+    fig_format = args.fig_format
 
-    main(input_files = input_files, region_file = region_file, genome = genome, image_height = image_height, outdir = outdir, igv_jar_bin = igv_jar_bin, igv_mem = igv_mem, no_snap = no_snap, suffix = suffix, nf4_mode = nf4_mode, onlysnap = onlysnap)
+    main(input_files = input_files, region_file = region_file, genome = genome, image_height = image_height, outdir = outdir, igv_jar_bin = igv_jar_bin, igv_mem = igv_mem, no_snap = no_snap, suffix = suffix, nf4_mode = nf4_mode, onlysnap = onlysnap, fig_format=fig_format)
 
 
 

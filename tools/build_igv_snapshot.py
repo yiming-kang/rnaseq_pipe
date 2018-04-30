@@ -24,6 +24,8 @@ def parse_args(argv):
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--igv_flank', default=500, type=int,
 						help='Flanking region to add to the region of interest in IGV snapshot.')
+	parser.add_argument('--snapshot_format', default='png',
+						help='Image format of IGV snapshot. Choose from png (deafult) or svg. The latter format offers vector image.')
 	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
@@ -76,7 +78,7 @@ def index_bams(ineffmut_dict, aligner='novoalign'):
 	return ineffmut_dict
 
 
-def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank):
+def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank, fig_format='png'):
 	"""
 	Create bed files to describe IGV region of interest
 	"""
@@ -94,12 +96,12 @@ def create_igv_region(ineffmut_dict, gene_annot, igv_output_dir, flank):
 		writer = open(igv_bed_filepath, 'w')
 		for gene in ineffmut_dict[sample]['gene']:
 			d = gene_annot_dict[gene]
-			writer.write('%s\t%d\t%d\t[%s]%s.png\n' % \
-				(d['chrm'], d['coords'][0]-flank, d['coords'][1]+flank, sample, gene))
+			writer.write('%s\t%d\t%d\t[%s]%s.%s\n' % \
+				(d['chrm'], d['coords'][0]-flank, d['coords'][1]+flank, sample, gene, fig_format))
 	return ineffmut_dict
 
 
-def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, email=None, job_script='job_scripts/igv_snapshot.sbatch'):
+def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, fig_format='png', email=None, job_script='job_scripts/igv_snapshot.sbatch'):
 	"""
 	Write job script to make IGV snapshot
 	"""
@@ -112,7 +114,7 @@ def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, email=None, job_
 	for sample in ineffmut_dict.keys():
 		bam_file = ineffmut_dict[sample]['bam']
 		bed_file = ineffmut_dict[sample]['bed']
-		job += 'python tools/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -o %s\n' % (bam_file, bed_file, igv_genome, igv_output_dir)
+		job += 'python tools/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' % (bam_file, bed_file, igv_genome, fig_format, igv_output_dir)
 	writer = open(job_script, 'w')
 	writer.write('%s' % job)
 	writer.close()
@@ -132,8 +134,8 @@ def main(argv):
 	print '... Checking bam indexing'
 	ineffmut_dict = index_bams(ineffmut_dict)
 	print '... Creating IGV snapshot scripts'
-	ineffmut_dict = create_igv_region(ineffmut_dict, parsed.gene_annotation, output_dir, parsed.igv_flank)
-	write_job_script(ineffmut_dict, parsed.igv_genome, output_dir, parsed.mail_user)
+	ineffmut_dict = create_igv_region(ineffmut_dict, parsed.gene_annotation, output_dir, flank=parsed.igv_flank, fig_format=parsed.snapshot_format)
+	write_job_script(ineffmut_dict, parsed.igv_genome, output_dir, fig_format=parsed.snapshot_format, email=parsed.mail_user)
 
 
 if __name__ == '__main__':
