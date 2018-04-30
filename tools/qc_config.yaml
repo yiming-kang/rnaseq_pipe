@@ -9,7 +9,7 @@ SAMPLE_READS:
   threshold: 500000
 ## post-alignment QC
 TOTAL_READS:
-  threshold: 5000000
+  threshold: 2000000
   status: 1
 ALIGN_PCT:
   threshold: 0.8
