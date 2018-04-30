@@ -199,13 +199,15 @@ def assess_replicate_concordance(df, expr, sample_dict, conditions):
 		cov_meds_dict = {}
 		rep_combos = make_combinations(sample_dict[key].keys())
 		for rep_combo in rep_combos:
-			sample_combo = [sample_dict[key][rep] for rep in sorted(rep_combo)]
+			## sort as integers
+			rep_combo = np.array(sorted(np.array(rep_combo,dtype=int)), dtype=str)
+			rep_num = len(rep_combo)
+			sample_combo = [sample_dict[key][rep] for rep in rep_combo]
 			## calculate COV median
 			cov_median = calculate_cov_median(expr[sample_combo])
 			rep_combo_col = 'COV_MED_REP'+''.join(np.array(rep_combo, dtype=str))
 			df.loc[df['SAMPLE'].isin(sample_ids), rep_combo_col] = cov_median
 			## store COV median at the respective rep number
-			rep_num = len(rep_combo)
 			if rep_num not in cov_meds_dict.keys():
 				cov_meds_dict[rep_num] = {'rep_combos': [], 'cov_meds': []}
 			cov_meds_dict[rep_num]['rep_combos'].append(rep_combo)
@@ -286,10 +288,10 @@ def main(argv):
 		resistance_cassettes_columns = [rc+'_FOM' for rc in resistance_cassettes]
 	df_columns = ['GENOTYPE','REPLICATE','SAMPLE'] \
 				+ conditions \
+				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE'] \
 				+ ['TOTAL','ALIGN_PCT','MUT_FOW'] \
 				+ resistance_cassettes_columns \
-				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] \
-				+ ['STATUS', 'AUTO_AUDIT', 'MANUAL_AUDIT', 'USER', 'NOTE']
+				+ ['COV_MED_REP'+''.join(np.array(combo, dtype=str)) for combo in make_combinations(range(1,parsed.max_replicates+1))] 
 	df = initialize_dataframe(parsed.samples, df_columns, parsed.group_num, conditions)
 	expr, sample_dict = load_expression_data(df, parsed.count_matrix, parsed.gene_list, conditions)
 	print '... Assessing reads mapping'

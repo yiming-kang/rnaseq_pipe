@@ -142,7 +142,7 @@ def main(argv):
 	
 	print '... Building header'
 	jobs = build_header(parsed.samples, parsed.group_num, 
-						cpt=parsed.cpus, mem=parsed.mem, email=parsed.mail_user)
+						cpus=parsed.cpus, mem=parsed.mem, email=parsed.mail_user)
 	print '... Building scripts for reads alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
