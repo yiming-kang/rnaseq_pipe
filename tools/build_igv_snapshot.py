@@ -12,8 +12,10 @@ def parse_args(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-q', '--sample_quality', required=True,
 						help='Sample quality file.')
-	parser.add_argument('-g', '--gene_annotation', required=True,
+	parser.add_argument('-a', '--gene_annotation', required=True,
 						help='Gene annotation file in GTF/GFF.')
+	parser.add_argument('-g', '--group_num', required=True,
+						help='Experiment group number.')
 	parser.add_argument('-gm', '--igv_genome', required=True,
 						help='Genome created in IGV.')
 	parser.add_argument('-w', '--wildtype', required=True,
@@ -135,7 +137,8 @@ def main(argv):
 	ineffmut_dict = index_bams(ineffmut_dict)
 	print '... Creating IGV snapshot scripts'
 	ineffmut_dict = create_igv_region(ineffmut_dict, parsed.gene_annotation, output_dir, flank=parsed.igv_flank, fig_format=parsed.snapshot_format)
-	write_job_script(ineffmut_dict, parsed.igv_genome, output_dir, fig_format=parsed.snapshot_format, email=parsed.mail_user)
+	job_filename = 'job_scripts/igv_snapshot.group_' + parsed.group_num + '.sbatch'
+	write_job_script(ineffmut_dict, parsed.igv_genome, output_dir, fig_format=parsed.snapshot_format, email=parsed.mail_user, job_script=job_filename)
 
 
 if __name__ == '__main__':
