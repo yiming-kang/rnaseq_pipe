@@ -5,11 +5,11 @@ This RNA-seq analysis pipeline is designed for Brent lab, Washington University.
 ### Installation
 To get started, let's clone this repo to your work station. 
 ```
-git clone https://github.com/yiming-kang/crypto_pipe.dev.git
+git clone https://github.com/yiming-kang/rnaseq_pipe.git
 ```
 
 ### Wiki
-For detailed intallation, usage, and file descriptions, check out our [wiki page](https://github.com/yiming-kang/crypto_pipe.dev/wiki).
+For detailed intallation, usage, and file descriptions, check out our [wiki page](https://github.com/yiming-kang/rnaseq_pipe/wiki).
 
 ### Contribution
 You are more than welcomed to contribute. Feel free to submit any pull request.
