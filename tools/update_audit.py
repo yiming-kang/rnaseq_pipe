@@ -24,7 +24,7 @@ def update_sample_summary(qa, samples, group):
 	"""
 	Decode status bit and update audit status afte manual audit of sample quality
 	"""
-	mask = (samples['ST_PIPE'] == 1) & (samples['GROUP'] == int(group))
+	mask = (samples['ST_PIPE'] == 1) & (samples['GROUP'] == group)
 	samples.loc[mask, 'AUTO_AUDIT'] = 1
 	samples.loc[mask, 'MANUAL_AUDIT'] = 1
 	for i,row in qa.iterrows():

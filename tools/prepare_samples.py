@@ -14,7 +14,7 @@ def parse_args(argv):
 						help='Sample summary metadata file.')
 	parser.add_argument('-m', '--metadata', required=True,
 						help='Metadata file(s). Use delimiter "," if mutilple metadata files are used together for the same analysis group.')
-	parser.add_argument('-g', '--group_num', required=True, type=int,
+	parser.add_argument('-g', '--group_num', required=True,
 						help='Analysis group number. It is required if mutilple metadata files are used.')
 	parser.add_argument('-d', '--design_table',
 						help='Auto-gen design table for DE anlaysis.')
