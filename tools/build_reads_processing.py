@@ -40,7 +40,7 @@ def build_header(samples_filepath, group, cpus=8, mem=24, email=None):
 	## write a lookup file
 	lookup_filepath = prepare_lookup_file(samples_valid, group)
 	## write job script
-	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=%d\n#SBATCH --mem=%d\n' % (cpus, mem)
+	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=%d\n#SBATCH --mem=%dG\n' % (cpus, mem)
 	job	+= '#SBATCH --array=1-%d%%%d\n' % (n_lines, min(n_lines,32))
 	job += '#SBATCH -D ./\n#SBATCH -o log/readsproc_%A_%a.out\n#SBATCH -e log/readsproc_%A_%a.err\n#SBATCH -J readsproc\n'
 	if email is not None:

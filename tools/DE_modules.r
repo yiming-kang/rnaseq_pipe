@@ -34,6 +34,8 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 		for (i in 1:nrow(design)) {
 			## for each sample if is assigned with a number and is valid 
 			sample_id <- as.character(design[i,'SAMPLE'])
+			if (is.na(design[i,col]))
+				next
 			if (design[i,col] == 0 & sample_id %in% valid_samples) 
 				contrast_dict[[col]][['0']] <- c(contrast_dict[[col]][['0']], paste(design[i,contrast_type], sample_id, sep='-'))
 			else if (design[i,col] == 1 & sample_id %in% valid_samples) 
