@@ -26,7 +26,7 @@ def query_metadata_features(metadata, descriptors):
 	for feature in features:
 		## print messages for querying user input
 		feature_values = [x.encode("utf-8") for x in pd.unique(metadata[feature])]
-		print "... Querying %s :", feature  
+		print "... Querying %s :" % feature  
 		print np.array(feature_values)
 		user_input = raw_input("Select from above: (Press 'Enter' to select all. If mutliple values selected, use delimiter ',')\n")
 		## parse user input
