@@ -122,6 +122,12 @@ def save_dataframe(filepath, df, df_cols=None):
 
 
 def main(argv):
+	df_meta_columns = ['GENOTYPE', 'SAMPLE', 'INDUCTION', 'LIBRARY', \
+					'REPLICATE', 'INDEX', 'RUN_NUMBER', 'FILE', 'GROUP']
+	df_qc_columns = ['ST_PIPE', 'ST_TOTAL_READS', 'ST_ALIGN_PCT', \
+					'ST_MUT_FOW', 'ST_RC_FOM', 'ST_COV_MED', 'AUTO_AUDIT', \
+					'MANUAL_AUDIT', 'USER', 'NOTE']
+
 	parsed = parse_args(argv)
 	## validate args
 	metadata = [f.strip() for f in parsed.metadata.split(',')]
@@ -133,6 +139,10 @@ def main(argv):
 	QC_dict = load_config(parsed.qc_configure)
 	## get conditions
 	conditions = [c.strip() for c in parsed.condition_descriptors.split(',')]
+	## check for no redundancy
+	cond_check = [c in df_meta_columns+df_qc_columns for c in conditions]
+	if sum(cond_check) > 0:
+		sys.exit("ERROR: Found redundant condition descriptor: %s" % np.array(conditions)[cond_check])
 
 	## define columns in sample summary
 	df_columns = ['GENOTYPE', 'SAMPLE', 'INDUCTION', 'LIBRARY', \
