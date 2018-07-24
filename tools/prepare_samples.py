@@ -97,7 +97,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 	## force group number if multiple metadata are given
 	if group is not None:
 		df2['GROUP'] = group
-	df = df.append(df2, ignore_index=True)[df_cols]
+        df = df.append(df2, ignore_index=True)[df_cols]
 	return df
 
 
@@ -148,10 +148,10 @@ def main(argv):
 	save_dataframe(parsed.samples, summary_df, df_cols=df_columns)
 
 	## build design table
-	if parsed.design_table is not None:
-		design_df = build_design_table(summary_df[summary_df['GROUP']==\
-								parsed.group_num], conditions, parsed.wildtype)
-		save_dataframe(parsed.design_table, design_df)
+	#if parsed.design_table is not None:
+	#	design_df = build_design_table(summary_df[summary_df['GROUP']==\
+	#							parsed.group_num], conditions, parsed.wildtype)
+	#	save_dataframe(parsed.design_table, design_df)
 
 
 if __name__ == '__main__':
