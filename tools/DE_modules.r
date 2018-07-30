@@ -1,8 +1,8 @@
 
-library(xlsx)
+suppressMessages(library(xlsx))
 
-import_deseq2 <- function() library(DESeq2)
-import_edger <- function() library(edgeR)
+import_deseq2 <- function() suppressMessages(library(DESeq2))
+import_edger <- function() suppressMessages(library(edgeR))
 
 
 parse_metadata <- function(design_filepath, qa_filepath) {
@@ -36,10 +36,15 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 			sample_id <- as.character(design[i,'SAMPLE'])
 			if (is.na(design[i,col]))
 				next
-			if (design[i,col] == 0 & sample_id %in% valid_samples) 
-				contrast_dict[[col]][['0']] <- c(contrast_dict[[col]][['0']], paste(design[i,contrast_type], sample_id, sep='-'))
-			else if (design[i,col] == 1 & sample_id %in% valid_samples) 
-				contrast_dict[[col]][['1']] <- c(contrast_dict[[col]][['1']], paste(design[i,contrast_type], sample_id, sep='-'))
+			if (design[i,col] == 0 & sample_id %in% valid_samples)
+				contrast_dict[[col]][['0']] <- c(contrast_dict[[col]][['0']], paste(design[i,'GENOTYPE'], sample_id, sep='-'))
+			else if (design[i,col] == 1 & sample_id %in% valid_samples)
+				contrast_dict[[col]][['1']] <- c(contrast_dict[[col]][['1']], paste(design[i,'GENOTYPE'], sample_id, sep='-'))
+		}
+		## remove disqualified contrast group, where no replicate is available for both samples
+		if(length(contrast_dict[[col]][['0']]) < 2 & length(contrast_dict[[col]][['1']]) < 2) {
+			contrast_dict[[col]] <- NULL
+			cat('WARNING: Contrast group', col, 'will not be used, due to no replicate for both samples.\n')
 		}
 	}
 	return(contrast_dict)

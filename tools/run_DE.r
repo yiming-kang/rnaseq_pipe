@@ -1,4 +1,4 @@
-library(optparse)
+suppressMessages(library(optparse))
 source('tools/DE_modules.r')
 
 parse_arguments <- function(){
@@ -36,8 +36,6 @@ if (parsed_opt$de_module == 'deseq2') {
 	}
 } else if (parsed_opt$de_module == 'edger') {
 	import_edger()
-	#header <- '[TREATMENT:37C.CO2-TIME_POINT:90m]GENOTYPE:CNAG_00000-CNAG_02877'
-	#run_edger(count_matrix, contrast_dict, header, parsed_opt$output_dir)
 	for (header in names(contrast_dict)) {
         cat('... Working on', header, '\n')
         run_edger(count_matrix, contrast_dict, header, parsed_opt$output_dir)
