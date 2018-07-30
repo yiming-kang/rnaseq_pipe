@@ -27,6 +27,8 @@ def parse_args(argv):
 						help='Resistance cassettes inserted to replace the deleted genes. Use "," as delimiter if multiple cassettes exist.')
 	parser.add_argument('--condition_descriptors', default='TREATMENT,TIME_POINT',
 						help='Experimental conditions that describe the sample are used to identify subgroups within each genotype. Use delimiter "," if multiple descriptors are used.')
+	parser.add_argument('--descriptors_specific_fow', action='store_true',
+						help = 'Set this flag to find the wildtype samples that match the condition descriptors of the mutant sample when calcualting the fold change over wildtype (FOW).')
 	parser.add_argument('--qc_configure', default='tools/qc_config.yaml',
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--auto_audit_threshold', type=int, default=0,
@@ -105,7 +107,7 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 	return df
 
 
-def assess_efficient_mutation(df, expr, sample_dict, wt):
+def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 	"""
 	Assess the completeness of gene deletion or efficiency of gene 
 	overexpression by caluclating the expression of the perturbed gene
@@ -113,21 +115,39 @@ def assess_efficient_mutation(df, expr, sample_dict, wt):
 	"""
 	if wt is None:
 		return df
-	## get wildtype samples
-	wt_samples = [] 
-	for key in sample_dict.keys(): 
-		if key[0] == wt:
-			wt_samples += sample_dict[key].values()
-	## calculate mean expression level of each gene
-	wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], 
-						axis=1), name='mean_fpkm')
-	wt_expr = pd.concat([expr, wt_expr], axis=1)
+	descr_match = True if conditions is not None else False
+	## get wildtype samples if not matching descriptors
+	if not descr_match:
+		wt_samples = [] 
+		for key in sample_dict.keys(): 
+			if key[0] == wt:
+				wt_samples += sample_dict[key].values()
+		## calculate mean expression level of each gene
+		wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], 
+							axis=1), name='mean_fpkm')
+		wt_expr = pd.concat([expr, wt_expr], axis=1)
 	## calculate efficiency of gene deletion, ignoring overexpression(*_over)
 	for i,row in df[df['GENOTYPE'] != wt].iterrows():
 		sample = row['GENOTYPE'] +'-'+ str(row['SAMPLE'])
 		## check for each mutant gene (there could be multiple mutant genes, delimited by '.')
 		mut_fow_list = []
 		for mut_gene in row['GENOTYPE'].split('.'):
+			## get wildtype samples if not matching descriptors
+			if descr_match:
+				mut_descr = [row[c] for c in conditions]
+				wt_samples = [] 
+				for key in sample_dict.keys(): 
+					descr_matched = all([key[j+1] == mut_descr[j] for j in range(len(mut_descr))])
+					if key[0] == wt and descr_matched:
+						wt_samples += sample_dict[key].values()
+				if len(wt_samples) == 0:
+					print '\tSample %s has no WT sample that matches its condition descriptors. Skipping this sample' % sample
+					continue
+				## calculate mean expression level of each gene
+				wt_expr = pd.Series(pd.DataFrame.mean(expr[wt_samples], 
+									axis=1), name='mean_fpkm')
+				wt_expr = pd.concat([expr, wt_expr], axis=1)
+			## get mutant gene expression in mutatnt sample 
 			if mut_gene not in expr['gene'].tolist():
 				print '\t%s not in gene list. Skipping this genotype' % mut_gene
 				continue
@@ -297,7 +317,10 @@ def main(argv):
 	print '... Assessing reads mapping'
 	df = assess_mapping_quality(df)
 	print '... Assessing efficiency of gene mutation'
-	df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
+	if parsed.descriptors_specific_fow:
+		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype, conditions)
+	else:
+		df = assess_efficient_mutation(df, expr, sample_dict, parsed.wildtype)
 	print '... Assessing insertion of resistance cassette'
 	df = assess_resistance_cassettes(df, expr, resistance_cassettes, parsed.wildtype)
 	print '... Assessing concordance among replicates'
