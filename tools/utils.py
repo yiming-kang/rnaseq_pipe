@@ -74,7 +74,7 @@ def parse_gtf(filename):
 			line_split = line.split("\t")
 			chrm, ltype, strand, annot = line_split[0], line_split[2], line_split[6], line_split[8]
 			coords = [int(x) for x in line_split[3:5]]
-			gene_id = re.search(r'gene_id "(.*)"; transcript_id "(.*)"', annot).group(1)
+			gene_id = re.findall(r'gene_id "(.+?)";', annot)[0]
 			## fill dictionary
 			if gene_id not in bed_dict.keys():
 				bed_dict[gene_id] = {'chrm': chrm, 'strand': strand, 'coords':[0,0]}
@@ -105,7 +105,7 @@ def parse_gff3(filename):
 			chrm, ltype, strand, annot = line_split[0], line_split[2], line_split[6], line_split[8]
 			coords = [int(x) for x in line_split[3:5]]
 			if ltype in 'gene':
-				gene_id = re.search(r'ID=(.*);Name=(.*)', annot).group(1)
+				gene_id = re.findall(r'Name=(.+?);', annot)[0]
 				## fill dictionary
 				bed_dict[gene_id] = {'chrm': chrm, 'strand': strand, 'coords':[min(coords), max(coords)]}
 	reader.close()
