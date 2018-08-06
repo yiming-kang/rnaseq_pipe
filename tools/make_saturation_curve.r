@@ -1,5 +1,5 @@
-library(optparse)
-library(NOISeq)
+suppressMessages(library(optparse))
+suppressMessages(library(NOISeq))
 options(bitmapType='cairo') ## enable X11
 
 

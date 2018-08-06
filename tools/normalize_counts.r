@@ -1,5 +1,5 @@
-library(optparse)
-library(DESeq2)
+suppressMessages(library(optparse))
+suppressMessages(library(DESeq2))
 
 
 parse_arguments <- function() {
