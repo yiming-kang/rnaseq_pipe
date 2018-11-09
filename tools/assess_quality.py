@@ -148,16 +148,17 @@ def assess_efficient_mutation(df, expr, sample_dict, wt, conditions=None):
 									axis=1), name='mean_fpkm')
 				wt_expr = pd.concat([expr, wt_expr], axis=1)
 			## get mutant gene expression in mutatnt sample 
-			if mut_gene not in expr['gene'].tolist():
-				print '\t%s not in gene list. Skipping this genotype' % mut_gene
+			mut_gene2 = mut_gene.strip("_over")
+			if mut_gene2 not in expr['gene'].tolist():
+				print '\t%s not in gene list. Skipping this genotype' % mut_gene2
 				continue
-			wt_mean = float(wt_expr[wt_expr['gene'] == mut_gene]['mean_fpkm'])
+			wt_mean = float(wt_expr[wt_expr['gene'] == mut_gene2]['mean_fpkm'])
 			if wt_mean == 0:
-				print '\t%s has 0 mean expression in WT samples' % mut_gene
+				print '\t%s has 0 mean expression in WT samples' % mut_gene2
 				mut_fow = np.inf
 			else:
-				mut_fow = float(expr[expr['gene'] == mut_gene][sample])/wt_mean
-					
+				mut_fow = float(expr[expr['gene'] == mut_gene2][sample])/wt_mean
+			
 			if mut_gene.endswith('_over'):
 				## check overexpression
 				if (mut_fow < QC_dict['MUT_FOW']['OVEREXPRESSION']['threshold']) and (row['STATUS'] < QC_dict['MUT_FOW']['OVEREXPRESSION']['status']):
