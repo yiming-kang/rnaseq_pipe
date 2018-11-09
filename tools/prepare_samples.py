@@ -59,7 +59,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 	check_cols = ['GENOTYPE', 'REPLICATE', 'INDUCTION', 'LIBRARY'] + conditions
 	exist_samples = get_exisiting_samples(df, check_cols)
 	## read metadata
-	df2 = pd.read_excel(metadata)
+        df2 = pd.read_excel(metadata, dtype={'RUN_NUMBER': object})
 	df2 = df2.reset_index().drop(['index'], axis=1)
 	# df2[qc_cols] = df2[qc_cols].apply(pd.to_numeric)
 	if 'FILE' not in df2:

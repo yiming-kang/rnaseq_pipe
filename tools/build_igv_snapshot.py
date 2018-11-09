@@ -26,8 +26,8 @@ def parse_args(argv):
 						help='Configuration file for quality assessment.')
 	parser.add_argument('--igv_flank', default=500, type=int,
 						help='Flanking region to add to the region of interest in IGV snapshot.')
-	parser.add_argument('--snapshot_format', default='png',
-						help='Image format of IGV snapshot. Choose from png (deafult) or svg. The latter format offers vector image.')
+	parser.add_argument('--snapshot_format', default='svg',
+						help='Image format of IGV snapshot. Choose from png or svg (deafult). The latter format offers vector image.')
 	parser.add_argument('--mail_user',
 						help='Email address to send notifications on the jobs.')
 	return parser.parse_args(argv[1:])
@@ -116,7 +116,7 @@ def write_job_script(ineffmut_dict, igv_genome, igv_output_dir, fig_format='png'
 	for sample in ineffmut_dict.keys():
 		bam_file = ineffmut_dict[sample]['bam']
 		bed_file = ineffmut_dict[sample]['bed']
-		job += 'python tools/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' % (bam_file, bed_file, igv_genome, fig_format, igv_output_dir)
+		job += 'python -u tools/make_IGV_snapshots.py %s -bin /opt/apps/igv/2.4.7/igv.jar -nf4 -r %s -g %s -fig_format %s -o %s\n' % (bam_file, bed_file, igv_genome, fig_format, igv_output_dir)
 	writer = open(job_script, 'w')
 	writer.write('%s' % job)
 	writer.close()
