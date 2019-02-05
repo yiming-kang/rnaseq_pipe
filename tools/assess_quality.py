@@ -88,12 +88,12 @@ def assess_mapping_quality(df, aligner_tool='novoalign'):
 		reader = open(filepath, 'r')
 		lines = reader.readlines()
 		for line in lines:
-			reg_total = re.search(r'Read Sequences: (.\d+)', line)
-			reg_uniq = re.search(r'Unique Alignment: (.\d+)', line)
+			reg_total = re.search(r'Read Sequences:( +)(.\d+)', line)
+			reg_uniq = re.search(r'Unique Alignment:( +)(.\d+)', line)
 			if reg_total:
-				total_reads = int(reg_total.group(1))
+				total_reads = int(reg_total.group(2))
 			if reg_uniq:
-				uniq_mapped_reads = int(reg_uniq.group(1))
+				uniq_mapped_reads = int(reg_uniq.group(2))
 		reader.close()
 		align_pct = uniq_mapped_reads/float(total_reads)
 		## set mapping quality
