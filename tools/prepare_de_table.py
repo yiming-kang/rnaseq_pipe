@@ -91,8 +91,11 @@ def main(argv):
 
 	## load sample summary
 	summary_df = pd.read_excel(parsed.samples)
+	## sift data based on group and quality
+	summary_df = summary_df[(summary_df['GROUP']==parsed.group_num) & \
+							(summary_df['MANUAL_AUDIT']==0)]
 	## prepare design table
-	design_df = build_design_table(summary_df[summary_df['GROUP']==parsed.group_num], conditions, parsed.wildtype)
+	design_df = build_design_table(summary_df, conditions, parsed.wildtype)
 	save_dataframe(parsed.design_table, design_df)
 
 
