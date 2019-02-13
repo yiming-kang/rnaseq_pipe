@@ -56,16 +56,19 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 	Find the corresponding fastq file.
 	"""
 	## get exisiting samples, used to check adding redundant samples
-	check_cols = ['GENOTYPE', 'REPLICATE', 'INDUCTION', 'LIBRARY'] + conditions
+	check_cols = ['GENOTYPE', 'STRAIN', 'REPLICATE', 'INDUCTION', 'LIBRARY'] + conditions
 	exist_samples = get_exisiting_samples(df, check_cols)
 	## read metadata
-        df2 = pd.read_excel(metadata, dtype={'RUN_NUMBER': object})
+	df2 = pd.read_excel(metadata, dtype={'RUN_NUMBER': object})
 	df2 = df2.reset_index().drop(['index'], axis=1)
+	## make placeholder of STRAIN column in metadata
+	if "STRAIN" not in df2.columns:
+		df2["STRAIN"] = ""
 	# df2[qc_cols] = df2[qc_cols].apply(pd.to_numeric)
 	if 'FILE' not in df2:
 		df2 = pd.concat([df2, pd.Series([0]*df2.shape[0], name='FILE')], axis=1)
 	sample = 0 if df.shape[0] == 0 else max(df['SAMPLE'])
-	## update metadata
+	## update sample summary based on metadata
 	added_sample_indx = []
 	for i,row in df2.iterrows():
 		## check sample redundancy
@@ -122,7 +125,7 @@ def save_dataframe(filepath, df, df_cols=None):
 
 
 def main(argv):
-	df_meta_columns = ['GENOTYPE', 'SAMPLE', 'INDUCTION', 'LIBRARY', \
+	df_meta_columns = ['GENOTYPE', 'STRAIN', 'SAMPLE', 'INDUCTION', 'LIBRARY', \
 					'REPLICATE', 'INDEX', 'RUN_NUMBER', 'FILE', 'GROUP']
 	df_qc_columns = ['ST_PIPE', 'ST_TOTAL_READS', 'ST_ALIGN_PCT', \
 					'ST_MUT_FOW', 'ST_RC_FOM', 'ST_COV_MED', 'AUTO_AUDIT', \
@@ -145,23 +148,13 @@ def main(argv):
 		sys.exit("ERROR: Found redundant condition descriptor: %s" % np.array(conditions)[cond_check])
 
 	## define columns in sample summary
-	df_columns = ['GENOTYPE', 'SAMPLE', 'INDUCTION', 'LIBRARY', \
-					'REPLICATE', 'INDEX', 'RUN_NUMBER', 'FILE', 'GROUP'] \
-				+ conditions + ['ST_PIPE', 'ST_TOTAL_READS', 'ST_ALIGN_PCT', \
-					'ST_MUT_FOW', 'ST_RC_FOM', 'ST_COV_MED', 'AUTO_AUDIT', \
-					'MANUAL_AUDIT', 'USER', 'NOTE']
+	df_columns = df_meta_columns + conditions + df_qc_columns
 	## define pre-alignment criteria to use
 	qc_columns = ['BA', 'TAPESTATION', 'SPIKEIN_READS', 'SAMPLE_READS']
 	## build sample summary sheet
 	summary_df = build_sample_summary(parsed.samples, metadata, df_columns,
 									qc_columns, parsed.group_num, conditions)
 	save_dataframe(parsed.samples, summary_df, df_cols=df_columns)
-
-	## build design table
-	#if parsed.design_table is not None:
-	#	design_df = build_design_table(summary_df[summary_df['GROUP']==\
-	#							parsed.group_num], conditions, parsed.wildtype)
-	#	save_dataframe(parsed.design_table, design_df)
 
 
 if __name__ == '__main__':
