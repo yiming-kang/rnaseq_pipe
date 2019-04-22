@@ -13,10 +13,7 @@ parse_metadata <- function(design_filepath, qa_filepath) {
 	## find valid samples
 	valid_samples <- c()
 	for (i in 1:nrow(qa)) {
-		if (is.na(qa$MANUAL_AUDIT[i])) { 
-			if (qa$AUTO_AUDIT[i] == 0) 
-				valid_samples <- c(valid_samples, as.character(qa$SAMPLE[i]))
-		} else {
+		if (!is.na(qa$MANUAL_AUDIT[i])) { 
 			if (qa$MANUAL_AUDIT[i] == 0) 
 				valid_samples <- c(valid_samples, as.character(qa$SAMPLE[i]))
 		}
