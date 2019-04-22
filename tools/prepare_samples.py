@@ -110,7 +110,7 @@ def get_exisiting_samples(df, check_cols):
 	"""
 	samples = []
 	for i,row in df.iterrows():
-		sample_descriptor = [row[col] for col in sorted(check_cols)]
+		sample_descriptor = [row[col] if col in df.columns else "NA" for col in sorted(check_cols)]
 		samples.append(sample_descriptor)
 	return samples
 
