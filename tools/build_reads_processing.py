@@ -20,6 +20,8 @@ def parse_args(argv):
 						help='Filepath of sbatch job script.')
 	parser.add_argument('--stranded', default='no',
 						help='Option for strand-specific protocol. Use yes/no/reverse.')
+	parser.add_argument('--feature_types', default=['CDS'],
+						help='List of annotated features, e.g. CDS and exon.')
 	parser.add_argument('--cpus', default=8, type=int,
 						help='CPUs per task. Default is 8.')
 	parser.add_argument('--mem', default=24, type=int,
@@ -66,7 +68,7 @@ def build_alignment(genome_index):
 	return job
 
 
-def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded='no'):
+def build_expression_quantification(reference_gtf, feature_types, expr_tool='htseq', stranded='no'):
 	"""
 	Build job scripts for quantifying gene expression levels using StringTie or HTSeq
 	"""
@@ -77,12 +79,11 @@ def build_expression_quantification(reference_gtf, expr_tool='htseq', stranded='
 			+ '\trm -rf expression/htseq/${data1} || :\n' \
 			+ '\tmkdir -p expression/htseq/${data1}\n'
 		if is_gff:
-			# job += '\thtseq-count -f bam -i ID -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
-			# job += '\thtseq-count -f bam -i ID -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
-			job += '\thtseq-count -f bam -i ID -s %s -t gene alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/gene_count.tsv\n' % (stranded, reference_gtf)
+			for feature_type in feature_types:
+				job += '\thtseq-count -f bam -i ID -s %s -t %s alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/%s_count.tsv\n' % (stranded, feature_type, reference_gtf, feature_type.lower())
 		else: 
-			job += '\thtseq-count -f bam -s %s -t CDS alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/cds_count.tsv\n' % (stranded, reference_gtf)
-			job += '\thtseq-count -f bam -s %s -t exon alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/exon_count.tsv\n' % (stranded, reference_gtf)
+			for feature_type in feature_types:
+				job += '\thtseq-count -f bam -s %s -t %s alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/%s_count.tsv\n' % (stranded, feature_type, reference_gtf, feature_type.lower())
 	elif expr_tool == 'stringtie':		
 		job += 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
 			+ '\trm -rf expression/stringtie/${data1} || :\n' \
@@ -146,7 +147,7 @@ def main(argv):
 	print '... Building scripts for reads alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
-	jobs += build_expression_quantification(parsed.reference_gtf, 
+	jobs += build_expression_quantification(parsed.reference_gtf, parsed.feature_types, 
 						stranded=parsed.stranded)
 	write_file(jobs, parsed.output_filepath)
 	

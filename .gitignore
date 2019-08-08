@@ -1,6 +1,7 @@
 alignment/
 expression/
 diffexpr/
+genome_files/*/
 job_scripts/
 log/
 reports/

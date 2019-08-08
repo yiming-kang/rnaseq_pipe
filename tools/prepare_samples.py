@@ -86,7 +86,7 @@ def populate_sample_summary(df, metadata, df_cols, qc_cols, conditions, group=No
 			df2.loc[i, 'ST_PIPE'] = 1
 			df2.loc[i, 'AUTO_AUDIT'] = 1
 		## valid uniqueness and existence of the fastq file
-		file = 'sequence/run_'+ str(row['RUN_NUMBER']) +'_samples/*'+ row['INDEX'] +'*'
+		file = 'sequence/run_'+ str(row['RUN_NUMBER']) +'_samples/*_'+ row['INDEX'] +'*'
 		files_found = glob.glob(file)
 		if len(files_found) == 0:
 			sys.exit('ERROR: No file exists with index %s and run number %s.' % (row['INDEX'], row['RUN_NUMBER']))
