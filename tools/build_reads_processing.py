@@ -20,8 +20,8 @@ def parse_args(argv):
 						help='Filepath of sbatch job script.')
 	parser.add_argument('--stranded', default='no',
 						help='Option for strand-specific protocol. Use yes/no/reverse.')
-	parser.add_argument('--feature_types', default=['CDS'],
-						help='List of annotated features, e.g. CDS and exon.')
+	parser.add_argument('--feature_types', default='CDS',
+						help='List of annotated features (e.g. CDS and exon), delimited by ",". Default uses only CDS.')
 	parser.add_argument('--cpus', default=8, type=int,
 						help='CPUs per task. Default is 8.')
 	parser.add_argument('--mem', default=24, type=int,
