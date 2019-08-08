@@ -31,7 +31,7 @@ def parse_args(argv):
 	return parser.parse_args(argv[1:])
 
 
-def build_header(samples_filepath, group, cpus=8, mem=24, email=None):
+def build_header(samples_filepath, group, primary_feature="CDS", cpus=8, mem=24, email=None):
 	"""
 	Build scripts for SBATCH configurations
 	"""
@@ -40,7 +40,7 @@ def build_header(samples_filepath, group, cpus=8, mem=24, email=None):
 	samples_valid = samples[(samples['GROUP'] == group) & (samples['ST_PIPE'] != '1')]
 	n_lines = samples_valid.shape[0]
 	## write a lookup file
-	lookup_filepath = prepare_lookup_file(samples_valid, group)
+	lookup_filepath = prepare_lookup_file(samples_valid, group, primary_feature)
 	## write job script
 	job = '#!/bin/bash\n#SBATCH -N 1\n#SBATCH --cpus-per-task=%d\n#SBATCH --mem=%dG\n' % (cpus, mem)
 	job	+= '#SBATCH --array=1-%d%%%d\n' % (n_lines, min(n_lines,32))
@@ -87,11 +87,11 @@ def build_expression_quantification(reference_gtf, feature_types, expr_tool='hts
 	return job
 
 
-def prepare_lookup_file(samples, group, expr_tool='htseq'):
+def prepare_lookup_file(samples, group, primary_feature, expr_tool='htseq'):
 	"""
 	Prepare lookup file for sbatch runs
 	"""
-	expr_tool_dict = {'htseq': 'cds_count.tsv',
+	expr_tool_dict = {'htseq': '%s_count.tsv' % primary_feature,
 						'stringtie': 'stringtie_out.gtf'}
 	## create lookup data for each sample
 	lookup_readsproc, lookup_expr = '', ''
@@ -133,14 +133,15 @@ def main(argv):
 		sys.exit('ERROR: %s does not exist.' % os.path.dirname(parsed.output_filepath))
 	if not parsed.stranded in ['yes', 'no', 'reverse']:
 		sys.exit('ERROR: wrong value for stranded argument.')
+
+	feature_types = [x.strip() for x in parsed.feature_types.split(",")]
 	
 	print '... Building header'
-	jobs = build_header(parsed.samples, parsed.group_num, 
+	jobs = build_header(parsed.samples, parsed.group_num, feature_types[0],
 						cpus=parsed.cpus, mem=parsed.mem, email=parsed.mail_user)
 	print '... Building scripts for reads alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
-	feature_types = [x.strip() for x in parsed.feature_types.split(",")]
 	jobs += build_expression_quantification(parsed.reference_gtf, feature_types, 
 						stranded=parsed.stranded)
 	write_file(jobs, parsed.output_filepath)
