@@ -75,19 +75,12 @@ def build_expression_quantification(reference_gtf, feature_types, expr_tool='hts
 	is_gff = True if reference_gtf.split('.')[-1] == 'gff' else False
 	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
 	if expr_tool == 'htseq':
-		job += 'if [[ ! -f expression/htseq/${data1}/cds_count.tsv || ! -f expression/htseq/${data1}/exon_count.tsv ]]; then\n' \
-			+ '\trm -rf expression/htseq/${data1} || :\n' \
-			+ '\tmkdir -p expression/htseq/${data1}\n'
-		if is_gff:
-			for feature_type in feature_types:
+		for feature_type in feature_types:
+			if is_gff:
 				job += '\thtseq-count -f bam -i ID -s %s -t %s alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/%s_count.tsv\n' % (stranded, feature_type, reference_gtf, feature_type.lower())
-		else: 
-			for feature_type in feature_types:
+			else:
 				job += '\thtseq-count -f bam -s %s -t %s alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/%s_count.tsv\n' % (stranded, feature_type, reference_gtf, feature_type.lower())
 	elif expr_tool == 'stringtie':		
-		job += 'if [ ! -f expression/stringtie/${data1}/stringtie_out.gtf  ]; then\n' \
-			+ '\trm -rf expression/stringtie/${data1} || :\n' \
-			+ '\tmkdir -p expression/stringtie/${data1}\n' 
 		job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${data1}/stringtie_out.gtf -A expression/stringtie/${data1}/gene_abundances.tab\n' % reference_gtf
 	job += 'fi\n'
 	job += 'fi\n\n'
@@ -147,7 +140,8 @@ def main(argv):
 	print '... Building scripts for reads alignment'
 	jobs += build_alignment(parsed.genome_index)
 	print '... Building scripts for gene expression quantification'
-	jobs += build_expression_quantification(parsed.reference_gtf, parsed.feature_types, 
+	feature_types = [x.strip() for x in parsed.feature_types.split(",")]
+	jobs += build_expression_quantification(parsed.reference_gtf, feature_types, 
 						stranded=parsed.stranded)
 	write_file(jobs, parsed.output_filepath)
 	
