@@ -73,7 +73,8 @@ def build_expression_quantification(reference_gtf, feature_types, expr_tool='hts
 	Build job scripts for quantifying gene expression levels using StringTie or HTSeq
 	"""
 	is_gff = True if reference_gtf.split('.')[-1] == 'gff' else False
-	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n'
+	job = 'if [[ ! -z ${data1} && ! -z ${data2} ]]; then\n' \
+			+ '\tmkdir -p expression/htseq/${data1}\n'
 	if expr_tool == 'htseq':
 		for feature_type in feature_types:
 			if is_gff:
@@ -82,7 +83,6 @@ def build_expression_quantification(reference_gtf, feature_types, expr_tool='hts
 				job += '\thtseq-count -f bam -s %s -t %s alignment/novoalign/${data1}/aligned_reads_sorted.bam %s > expression/htseq/${data1}/%s_count.tsv\n' % (stranded, feature_type, reference_gtf, feature_type.lower())
 	elif expr_tool == 'stringtie':		
 		job += '\tstringtie -p ${SLURM_CPUS_PER_TASK} alignment/novoalign/${data1}/aligned_reads_sorted.bam -G %s -e -o expression/stringtie/${data1}/stringtie_out.gtf -A expression/stringtie/${data1}/gene_abundances.tab\n' % reference_gtf
-	job += 'fi\n'
 	job += 'fi\n\n'
 	return job
 
