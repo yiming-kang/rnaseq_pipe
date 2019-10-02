@@ -11,15 +11,19 @@ FEATURE_TYPE_DICT = {"gff": "gene", "gtf": "CDS"}
 def parse_args(argv):
 	parser = argparse.ArgumentParser(description="This script generates sbatch script and submits sbatch job.")
 	parser.add_argument("-f", "--fastq_path", required=True,
-						help="Directory path of fastq files of type: {}".format(FASTQ_TYPES))
+						help="[Required] Directory path of fastq files of type: {}".format(FASTQ_TYPES))
 	parser.add_argument("-i", "--genome_index_file", required=True,
-						help="Genome index file. This is specific to the aligner.")
+						help="[Required] File path of genome index. This is specific to the aligner.")
 	parser.add_argument("-s", "--strandness", required=True,
-						help="Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
-	parser.add_argument("--gene_annotation_file", default=None)
-	parser.add_argument("--annotation_feature_type", default=None)
-	parser.add_argument("--output_path", default=None)
-	parser.add_argument("--user_email", default=None)
+						help="[Required] Specify 'yes', 'no', or 'reverse'. For NEB kit, use 'reverse'.")
+	parser.add_argument("--gene_annotation_file", default=None,
+						help="[Optional]  File path of gene annotation. By default (if not specified), it will look for .gff or .gtf file in the same directory and has same filename as genome index file.")
+	parser.add_argument("--annotation_feature_type", default=None,
+						help="[Optional]  Feature type to use for reads counting. By default (if not specified), it will use this dictionary {} based on the annotation file type.".format(FEATURE_TYPE_DICT))
+	parser.add_argument("--output_path", default=None,
+						help="[Optional] Directory path of output data. By default (if not specified), it will write output files in the same directory as the input fastq files.")
+	parser.add_argument("--user_email", default=None,
+						help="[Optional] Email for job status notification.")
 	args = parser.parse_args(argv[1:])
 	return args
 
