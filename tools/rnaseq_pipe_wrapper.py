@@ -72,8 +72,8 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
 		f.write("ml htseq/0.9.1\n")
 		f.write("read fastq_file < <( sed -n ${{SLURM_ARRAY_TASK_ID}}p {} ); set -e\n\n".format(fastq_list_file))
 		f.write("mkdir -p {}\n".format(output_path))
-		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c ${{CPUS_PER_TASK}} -o SAM -d {0} -f ${{fastq_file}} 2> log/${{sample}}_novoalign.log | samtools view -bS > {1}/${{sample}}_aligned_reads.bam\n".format(geno_idx_file, output_path))
-		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads ${{CPUS_PER_TASK}} {0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> log/${{sample}}_novosort.log\n".format(output_path))
+		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> log/${{sample}}_novoalign.log | samtools view -bS > {1}/${{sample}}_aligned_reads.bam\n".format(geno_idx_file, output_path))
+		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> log/${{sample}}_novosort.log\n".format(output_path))
 		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> log/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
 
 
