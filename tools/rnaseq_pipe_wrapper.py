@@ -24,6 +24,8 @@ def parse_args(argv):
 						help="[Optional] Directory path of output data. By default (if not specified), it will write output files in the same directory as the input fastq files.")
 	parser.add_argument("--user_email", default=None,
 						help="[Optional] Email for job status notification.")
+	parser.add_argument("--align_only", action="store_true",
+						help="[Optional] Set this flag to only align reads.")
 	args = parser.parse_args(argv[1:])
 	return args
 
@@ -56,7 +58,7 @@ def write_fastq_list(dir_path, out_file):
 	return len(file_paths)
 
 
-def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_idx_file, gene_ann_file, feat_type, strandness):
+def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_idx_file, gene_ann_file, feat_type, strandness, align_only):
 	with open(job_file, "w") as f:
 		f.write("#!/bin/bash\n")
 		f.write("#SBATCH -N 1\n")
@@ -74,7 +76,8 @@ def write_job_script(job_file, output_path, fastq_list_file, num_fastqs, geno_id
 		f.write("mkdir -p {}\n".format(output_path))
 		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novoalign -c 8 -o SAM -d {0} -f ${{fastq_file}} 2> log/${{sample}}_novoalign.log | samtools view -bS > {1}/${{sample}}_aligned_reads.bam\n".format(geno_idx_file, output_path))
 		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; novosort --threads 8 {0}/${{sample}}_aligned_reads.bam > {0}/${{sample}}_sorted_aligned_reads.bam 2> log/${{sample}}_novosort.log\n".format(output_path))
-		f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> log/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
+		if align_only is False:
+			f.write("sample=${{fastq_file##*/}}; sample=${{sample%.f*q.gz}}; htseq-count -f bam -i ID -s {1} -t {2} {0}/${{sample}}_sorted_aligned_reads.bam {3} > {0}/${{sample}}_read_count.tsv 2> log/${{sample}}_htseq.log\n".format(output_path, strandness, feat_type, gene_ann_file))
 
 
 def main(argv):
@@ -86,6 +89,7 @@ def main(argv):
 	ann_feat_type = args.annotation_feature_type
 	strandness = args.strandness
 	user_email = args.user_email
+	align_only = args.align_only
 
 	## Parse default variables
 	if output_path is None:
@@ -105,7 +109,8 @@ def main(argv):
 	num_fastqs = write_fastq_list(fastq_path, fastq_list_file)
 	write_job_script(sbatch_job_file, output_path,
 					fastq_list_file, num_fastqs, 
-					geno_idx_file, gene_ann_file, feat_type, strandness)
+					geno_idx_file, gene_ann_file, feat_type, 
+					strandness, align_only)
 
 	## Submit sbatch job
 	if user_email is None:
